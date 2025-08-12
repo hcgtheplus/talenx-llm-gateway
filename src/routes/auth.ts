@@ -2,13 +2,12 @@ import { Router, Request, Response } from 'express';
 import crypto from 'crypto';
 import { asyncHandler } from '../middleware/errorHandler';
 import { AuthRequest, authenticate } from '../middleware/auth';
-import { redisClient } from '../utils/redis';
 import { strictRateLimiter } from '../middleware/rateLimiter';
 import { logger } from '../utils/logger';
 
 const router = Router();
 
-// Generate API key (simplified - no user registration)
+// Generate API key (for testing/utility - not stored)
 router.post(
   '/api-key/generate',
   strictRateLimiter,
@@ -17,21 +16,17 @@ router.post(
     const apiKey = `tlx_${crypto.randomBytes(16).toString('hex')}`;
     const keyId = crypto.randomUUID();
     
-    // Store API key in Redis (no user data needed)
-    await redisClient.setToken(apiKey, keyId, 86400 * 365); // 1 year TTL
-    
-    logger.info(`New API key generated: ${keyId}`);
+    logger.info(`New API key generated (not stored): ${keyId}`);
     
     res.status(201).json({
       apiKey,
       keyId,
-      expiresIn: 86400 * 365,
-      message: 'API key created successfully. Keep it secure!'
+      message: 'API key generated. Note: Keys are not stored server-side. Use any valid format key for authentication.'
     });
   })
 );
 
-// Validate API key
+// Validate API key format
 router.post(
   '/api-key/validate',
   asyncHandler(async (req: Request, res: Response) => {
@@ -42,17 +37,17 @@ router.post(
       return;
     }
     
-    // Check if API key exists
-    const keyId = await redisClient.getToken(apiKey);
+    // Only validate format, not storage
+    const isValid = /^tlx_[a-f0-9]{32}$/.test(apiKey);
     
     res.json({
-      valid: !!keyId,
-      keyId: keyId || null
+      valid: isValid,
+      message: isValid ? 'Valid API key format' : 'Invalid API key format'
     });
   })
 );
 
-// Revoke API key
+// Revoke API key (informational only - keys not stored)
 router.delete(
   '/api-key/revoke',
   authenticate,
@@ -64,11 +59,11 @@ router.delete(
       return;
     }
     
-    await redisClient.deleteToken(apiKey);
+    logger.info(`API key revoke requested (no-op): ${req.user?.id}`);
     
-    logger.info(`API key revoked: ${req.user?.id}`);
-    
-    res.json({ message: 'API key revoked successfully' });
+    res.json({ 
+      message: 'API key marked as revoked. Note: Keys are not stored server-side, so this action is informational only.' 
+    });
   })
 );
 

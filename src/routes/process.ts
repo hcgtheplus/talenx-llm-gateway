@@ -5,6 +5,7 @@ import { validate } from '../middleware/validation';
 import { asyncHandler } from '../middleware/errorHandler';
 import { orchestrator } from '../services/orchestrator';
 import { logger } from '../utils/logger';
+import { MCPAuthConfig } from '../services/mcp/client';
 
 const router = Router();
 
@@ -31,13 +32,17 @@ router.post(
       stream 
     } = req.body;
 
-    // 클라이언트의 Authorization 헤더 추출 (Bearer 토큰)
-    const clientToken = req.headers.authorization?.replace('Bearer ', '') || 
-                       req.headers['x-client-token'] as string;
+    // 클라이언트의 인증 정보 사용 (auth middleware에서 이미 추출됨)
+    const authConfig: MCPAuthConfig = {
+      authToken: req.user?.authToken,
+      ttid: req.user?.ttid,
+      cookies: req.user?.cookies,
+    };
 
     logger.info('Processing integrated request', {
       userId: req.user?.id,
-      hasClientToken: !!clientToken,
+      hasAuth: !!authConfig,
+      hasTTID: !!authConfig.ttid,
       mcpTools: mcpTools?.length || 0,
       stream,
     });
@@ -48,7 +53,7 @@ router.post(
       mcpTools,
       temperature,
       maxTokens,
-      clientToken,
+      authConfig,
     };
 
     if (stream) {
@@ -102,26 +107,28 @@ router.post(
   })
 );
 
-// MCP 도구 목록 조회 (클라이언트 토큰 사용)
+// MCP 도구 목록 조회 (클라이언트 인증 사용)
 router.get(
   '/available-tools',
   authenticate,
   asyncHandler(async (req: AuthRequest, res: Response) => {
-    const clientToken = req.headers.authorization?.replace('Bearer ', '') || 
-                       req.headers['x-client-token'] as string;
+    const authConfig: MCPAuthConfig = {
+      authToken: req.user?.authToken,
+      ttid: req.user?.ttid,
+      cookies: req.user?.cookies,
+    };
 
-    if (!clientToken) {
+    if (!authConfig.authToken && !authConfig.ttid) {
       res.json({ 
         tools: [],
-        message: 'No client token provided. MCP tools unavailable.' 
+        message: 'No authentication provided (TTID or Bearer token required). MCP tools unavailable.' 
       });
       return;
     }
 
     try {
       const { mcpClient } = await import('../services/mcp/client');
-      await mcpClient.setAuthToken(clientToken);
-      const tools = await mcpClient.listTools();
+      const tools = await mcpClient.listTools(authConfig);
       
       res.json({ 
         tools,

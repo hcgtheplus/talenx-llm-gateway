@@ -3,7 +3,7 @@ import { AuthRequest, authenticate } from '../middleware/auth';
 import { standardRateLimiter } from '../middleware/rateLimiter';
 import { validate } from '../middleware/validation';
 import { asyncHandler } from '../middleware/errorHandler';
-import { mcpClient } from '../services/mcp/client';
+import { mcpClient, MCPAuthConfig } from '../services/mcp/client';
 import { Response } from 'express';
 
 const router = Router();
@@ -13,8 +13,13 @@ router.get(
   '/tools',
   authenticate,
   standardRateLimiter,
-  asyncHandler(async (_req: AuthRequest, res: Response) => {
-    const tools = await mcpClient.listTools();
+  asyncHandler(async (req: AuthRequest, res: Response) => {
+    const authConfig: MCPAuthConfig = {
+      authToken: req.user?.authToken,
+      ttid: req.user?.ttid,
+      cookies: req.user?.cookies,
+    };
+    const tools = await mcpClient.listTools(authConfig);
     res.json({ tools });
   })
 );
@@ -30,11 +35,19 @@ router.post(
   ]),
   asyncHandler(async (req: AuthRequest, res: Response) => {
     const { name, arguments: args } = req.body;
+    const authConfig: MCPAuthConfig = {
+      authToken: req.user?.authToken,
+      ttid: req.user?.ttid,
+      cookies: req.user?.cookies,
+    };
     
-    const result = await mcpClient.callTool({
-      name,
-      arguments: args,
-    });
+    const result = await mcpClient.callTool(
+      {
+        name,
+        arguments: args,
+      },
+      authConfig
+    );
     
     res.json(result);
   })
@@ -47,13 +60,21 @@ router.get(
   standardRateLimiter,
   asyncHandler(async (req: AuthRequest, res: Response) => {
     const { page, size, status, name } = req.query;
+    const authConfig: MCPAuthConfig = {
+      authToken: req.user?.authToken,
+      ttid: req.user?.ttid,
+      cookies: req.user?.cookies,
+    };
     
-    const appraisals = await mcpClient.getAppraisals({
-      page: page ? parseInt(page as string, 10) : undefined,
-      size: size ? parseInt(size as string, 10) : undefined,
-      status: status as string,
-      name: name as string,
-    });
+    const appraisals = await mcpClient.getAppraisals(
+      {
+        page: page ? parseInt(page as string, 10) : undefined,
+        size: size ? parseInt(size as string, 10) : undefined,
+        status: status as string,
+        name: name as string,
+      },
+      authConfig
+    );
     
     res.json(appraisals);
   })
@@ -67,6 +88,11 @@ router.get(
   asyncHandler(async (req: AuthRequest, res: Response) => {
     const { appraisalId, groupId } = req.params;
     const { page, size } = req.query;
+    const authConfig: MCPAuthConfig = {
+      authToken: req.user?.authToken,
+      ttid: req.user?.ttid,
+      cookies: req.user?.cookies,
+    };
     
     const responses = await mcpClient.getResponseResults(
       parseInt(appraisalId, 10),
@@ -74,7 +100,8 @@ router.get(
       {
         page: page ? parseInt(page as string, 10) : undefined,
         size: size ? parseInt(size as string, 10) : undefined,
-      }
+      },
+      authConfig
     );
     
     res.json(responses);
@@ -103,8 +130,13 @@ router.post(
 // MCP health check
 router.get(
   '/health',
-  asyncHandler(async (_req: AuthRequest, res: Response) => {
-    const isHealthy = await mcpClient.healthCheck();
+  asyncHandler(async (req: AuthRequest, res: Response) => {
+    const authConfig: MCPAuthConfig = {
+      authToken: req.user?.authToken,
+      ttid: req.user?.ttid,
+      cookies: req.user?.cookies,
+    };
+    const isHealthy = await mcpClient.healthCheck(authConfig);
     
     res.status(isHealthy ? 200 : 503).json({
       status: isHealthy ? 'healthy' : 'unhealthy',

@@ -24,9 +24,14 @@ export interface MCPToolResult {
   error?: string;
 }
 
+export interface MCPAuthConfig {
+  authToken?: string;  // Bearer token
+  ttid?: string;       // TTID cookie value
+  cookies?: string;    // Full cookie string
+}
+
 export class MCPClient {
   private client: AxiosInstance;
-  private authToken: string | null = null;
 
   constructor() {
     this.client = axios.create({
@@ -36,20 +41,6 @@ export class MCPClient {
         'Content-Type': 'application/json',
       },
     });
-
-    // Request interceptor to add auth token
-    this.client.interceptors.request.use(
-      (config) => {
-        if (this.authToken) {
-          config.headers.Authorization = `Bearer ${this.authToken}`;
-        }
-        return config;
-      },
-      (error) => {
-        logger.error('MCP request interceptor error:', error);
-        return Promise.reject(error);
-      }
-    );
 
     // Response interceptor for error handling
     this.client.interceptors.response.use(
@@ -66,11 +57,35 @@ export class MCPClient {
     );
   }
 
-  async setAuthToken(token: string): Promise<void> {
-    this.authToken = token;
+  // Helper to create authenticated request config
+  private getAuthConfig(auth?: MCPAuthConfig | string) {
+    const headers: any = {};
+    
+    // Handle backward compatibility - if string, treat as authToken
+    if (typeof auth === 'string') {
+      headers.Authorization = `Bearer ${auth}`;
+      return { headers };
+    }
+    
+    // Handle MCPAuthConfig object
+    if (auth) {
+      // Add Bearer token if present
+      if (auth.authToken) {
+        headers.Authorization = `Bearer ${auth.authToken}`;
+      }
+      
+      // Add cookies if present (prioritize full cookie string, then TTID)
+      if (auth.cookies) {
+        headers.Cookie = auth.cookies;
+      } else if (auth.ttid) {
+        headers.Cookie = `TTID=${auth.ttid}`;
+      }
+    }
+    
+    return { headers };
   }
 
-  async listTools(): Promise<MCPTool[]> {
+  async listTools(auth?: MCPAuthConfig | string): Promise<MCPTool[]> {
     try {
       // Check cache first
       const cacheKey = 'mcp:tools';
@@ -81,8 +96,8 @@ export class MCPClient {
         return cached;
       }
 
-      // Fetch from MCP server
-      const response = await this.client.get('/tools');
+      // Fetch from MCP server with auth
+      const response = await this.client.get('/tools', this.getAuthConfig(auth));
       const tools = response.data.tools || [];
 
       // Cache for 1 hour
@@ -97,12 +112,16 @@ export class MCPClient {
     }
   }
 
-  async callTool(toolCall: MCPToolCall): Promise<MCPToolResult> {
+  async callTool(toolCall: MCPToolCall, auth?: MCPAuthConfig | string): Promise<MCPToolResult> {
     try {
-      const response = await this.client.post('/tools/call', {
-        name: toolCall.name,
-        arguments: toolCall.arguments || {},
-      });
+      const response = await this.client.post(
+        '/tools/call',
+        {
+          name: toolCall.name,
+          arguments: toolCall.arguments || {},
+        },
+        this.getAuthConfig(auth)
+      );
 
       return response.data;
     } catch (error: any) {
@@ -113,12 +132,15 @@ export class MCPClient {
     }
   }
 
-  async getAppraisals(params?: {
-    page?: number;
-    size?: number;
-    status?: string;
-    name?: string;
-  }): Promise<any> {
+  async getAppraisals(
+    params?: {
+      page?: number;
+      size?: number;
+      status?: string;
+      name?: string;
+    },
+    auth?: MCPAuthConfig | string
+  ): Promise<any> {
     try {
       const cacheKey = `mcp:appraisals:${JSON.stringify(params || {})}`;
       const cached = await redisClient.getCache(cacheKey);
@@ -128,10 +150,13 @@ export class MCPClient {
         return cached;
       }
 
-      const result = await this.callTool({
-        name: 'get_appraisals',
-        arguments: params,
-      });
+      const result = await this.callTool(
+        {
+          name: 'get_appraisals',
+          arguments: params,
+        },
+        auth
+      );
 
       if (result.error) {
         throw new Error(result.error);
@@ -157,7 +182,8 @@ export class MCPClient {
     params?: {
       page?: number;
       size?: number;
-    }
+    },
+    auth?: MCPAuthConfig | string
   ): Promise<any> {
     try {
       const cacheKey = `mcp:responses:${appraisalId}:${groupId}:${JSON.stringify(params || {})}`;
@@ -168,14 +194,17 @@ export class MCPClient {
         return cached;
       }
 
-      const result = await this.callTool({
-        name: 'get_response_results',
-        arguments: {
-          appraisal_id: appraisalId,
-          group_id: groupId,
-          ...params,
+      const result = await this.callTool(
+        {
+          name: 'get_response_results',
+          arguments: {
+            appraisal_id: appraisalId,
+            group_id: groupId,
+            ...params,
+          },
         },
-      });
+        auth
+      );
 
       if (result.error) {
         throw new Error(result.error);
@@ -201,9 +230,9 @@ export class MCPClient {
   }
 
   // Method to check MCP server health
-  async healthCheck(): Promise<boolean> {
+  async healthCheck(auth?: MCPAuthConfig | string): Promise<boolean> {
     try {
-      const response = await this.client.get('/health');
+      const response = await this.client.get('/health', this.getAuthConfig(auth));
       return response.status === 200;
     } catch (error) {
       logger.error('MCP health check failed:', error);

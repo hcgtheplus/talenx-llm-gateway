@@ -1,43 +1,63 @@
-# API Documentation
+# API 문서
 
-## Overview
+## 개요
 
-The Talenx LLM Gateway provides a unified API for accessing OpenAI models and MCP (Model Context Protocol) tools. All endpoints require authentication via API key.
+Talenx LLM 게이트웨이는 OpenAI 모델과 MCP(Model Context Protocol) 도구에 접근하기 위한 통합 API를 제공합니다. 모든 엔드포인트는 API 키를 통한 인증이 필요합니다.
 
-## Base URL
+## 기본 URL
 
 ```
 http://localhost:1111
 ```
 
-## Authentication
+## 인증
 
-All API endpoints (except health checks) require an `X-API-Key` header:
+모든 API 엔드포인트(헬스 체크 제외)는 다음 중 하나 이상의 인증 방식이 필요합니다:
 
+### 1. API 키 인증
 ```http
 X-API-Key: tlx_0123456789abcdef0123456789abcdef
 ```
 
-### API Key Format
+**형식:**
+- 접두사: `tlx_`
+- 본문: 32자리 16진수 (0-9, a-f)
+- 전체 길이: 36자
 
-- **Prefix:** `tlx_`
-- **Body:** 32 hexadecimal characters (0-9, a-f)
-- **Total Length:** 36 characters
-- **Auto-Registration:** Keys are automatically registered in Redis on first use
+### 2. TTID 쿠키 인증 (MCP 연동 기본)
+```http
+Cookie: TTID=eyJraWQiOiI2Mzg1ZWRhYy05NTAwLTQwYzAtOTQzNy04YThlYmRkNWY1NWYiLCJhbGciOiJSUzI1NiJ9...; 
+Cookie: refreshToken=...; signedIn=true
+```
 
-## Endpoints
+**TTID 쿠키:**
+- JWT 형식의 인증 토큰
+- 원본 API 서버 인증에 사용
+- MCP 서버로 자동 전달
 
-### Health & Status
+### 3. Bearer 토큰 인증 (대체 방법)
+```http
+Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
+```
 
-#### Health Check
+> **참고:** 
+> - API 키는 형식만 검증되며 서버에 저장되지 않습니다
+> - MCP 기능 사용 시 TTID 쿠키 또는 Bearer 토큰이 필수입니다
+> - 쿠키는 MCP 서버로 자동 패스스루됩니다
+
+## 엔드포인트
+
+### 헬스 & 상태
+
+#### 헬스 체크
 
 ```http
 GET /health
 ```
 
-No authentication required.
+인증이 필요하지 않습니다.
 
-**Response:**
+**응답:**
 ```json
 {
   "status": "healthy",
@@ -49,36 +69,36 @@ No authentication required.
 
 ---
 
-### Authentication
+### 인증
 
-#### Validate API Key
+#### API 키 형식 검증
 
 ```http
 POST /api/v1/auth/api-key/validate
 ```
 
-**Request Body:**
+**요청 본문:**
 ```json
 {
   "apiKey": "tlx_0123456789abcdef0123456789abcdef"
 }
 ```
 
-**Response:**
+**응답:**
 ```json
 {
   "valid": true,
-  "keyId": "user_615c3457e46ca4a4"
+  "message": "Valid API key format"
 }
 ```
 
-#### Get API Key Info
+#### API 키 정보 조회
 
 ```http
 GET /api/v1/auth/api-key/info
 ```
 
-**Response:**
+**응답:**
 ```json
 {
   "keyId": "user_615c3457e46ca4a4",
@@ -86,41 +106,41 @@ GET /api/v1/auth/api-key/info
 }
 ```
 
-#### Revoke API Key
+#### API 키 폐기 (정보용)
 
 ```http
 DELETE /api/v1/auth/api-key/revoke
 ```
 
-**Response:**
+**응답:**
 ```json
 {
-  "message": "API key revoked successfully"
+  "message": "API key marked as revoked. Note: Keys are not stored server-side, so this action is informational only."
 }
 ```
 
 ---
 
-### OpenAI Integration
+### OpenAI 통합
 
-#### Chat Completion
+#### 채팅 완성
 
 ```http
 POST /api/v1/llm/chat
 ```
 
-**Request Body:**
+**요청 본문:**
 ```json
 {
   "model": "gpt-3.5-turbo",
   "messages": [
     {
       "role": "system",
-      "content": "You are a helpful assistant."
+      "content": "당신은 도움이 되는 어시스턴트입니다."
     },
     {
       "role": "user",
-      "content": "Hello!"
+      "content": "안녕하세요!"
     }
   ],
   "temperature": 0.7,
@@ -130,21 +150,21 @@ POST /api/v1/llm/chat
 }
 ```
 
-**Parameters:**
+**파라미터:**
 
-| Field | Type | Required | Description |
+| 필드 | 타입 | 필수 | 설명 |
 |-------|------|----------|-------------|
-| model | string | Yes | OpenAI model ID (e.g., "gpt-3.5-turbo", "gpt-4") |
-| messages | array | Yes | Array of message objects with role and content |
-| temperature | number | No | Creativity control (0-2, default: 0.7) |
-| maxTokens | number | No | Maximum tokens in response (default: model-specific) |
-| topP | number | No | Nucleus sampling (0-1, default: 1) |
-| stream | boolean | No | Enable streaming response (default: false) |
+| model | string | 예 | OpenAI 모델 ID (예: "gpt-3.5-turbo", "gpt-4") |
+| messages | array | 예 | role과 content를 가진 메시지 객체 배열 |
+| temperature | number | 아니오 | 창의성 제어 (0-2, 기본값: 0.7) |
+| maxTokens | number | 아니오 | 응답의 최대 토큰 수 (기본값: 모델별 상이) |
+| topP | number | 아니오 | 핵 샘플링 (0-1, 기본값: 1) |
+| stream | boolean | 아니오 | 스트리밍 응답 활성화 (기본값: false) |
 
-**Response (Non-streaming):**
+**응답 (비스트리밍):**
 ```json
 {
-  "content": "Hello! How can I help you today?",
+  "content": "안녕하세요! 오늘 어떻게 도와드릴까요?",
   "model": "gpt-3.5-turbo",
   "usage": {
     "promptTokens": 20,
@@ -154,22 +174,21 @@ POST /api/v1/llm/chat
 }
 ```
 
-**Response (Streaming):**
+**응답 (스트리밍):**
 ```
-data: {"content": "Hello"}
+data: {"content": "안녕"}
+data: {"content": "하세요"}
 data: {"content": "!"}
-data: {"content": " How"}
-data: {"content": " can"}
 data: [DONE]
 ```
 
-#### List Available Models
+#### 사용 가능한 모델 목록
 
 ```http
 GET /api/v1/llm/providers
 ```
 
-**Response:**
+**응답:**
 ```json
 {
   "providers": [
@@ -187,16 +206,16 @@ GET /api/v1/llm/providers
 }
 ```
 
-#### Get Usage Statistics
+#### 사용량 통계 조회
 
 ```http
 GET /api/v1/llm/usage?days=7
 ```
 
-**Query Parameters:**
-- `days` (optional): Number of days to include (default: 30)
+**쿼리 파라미터:**
+- `days` (선택): 포함할 일 수 (기본값: 30)
 
-**Response:**
+**응답:**
 ```json
 {
   "usage": {
@@ -211,21 +230,21 @@ GET /api/v1/llm/usage?days=7
 
 ---
 
-### MCP Integration
+### MCP 통합
 
-#### List Available Tools
+#### 사용 가능한 도구 목록
 
 ```http
 GET /api/v1/mcp/tools
 ```
 
-**Response:**
+**응답:**
 ```json
 {
   "tools": [
     {
       "name": "get_appraisals",
-      "description": "Retrieve appraisal list",
+      "description": "평가 목록 가져오기",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -239,13 +258,13 @@ GET /api/v1/mcp/tools
 }
 ```
 
-#### Execute Tool
+#### 도구 실행
 
 ```http
 POST /api/v1/mcp/tools/call
 ```
 
-**Request Body:**
+**요청 본문:**
 ```json
 {
   "name": "get_appraisals",
@@ -257,7 +276,7 @@ POST /api/v1/mcp/tools/call
 }
 ```
 
-**Response:**
+**응답:**
 ```json
 {
   "content": [
@@ -269,19 +288,19 @@ POST /api/v1/mcp/tools/call
 }
 ```
 
-#### Get Appraisals
+#### 평가 목록 조회
 
 ```http
 GET /api/v1/mcp/appraisals
 ```
 
-**Query Parameters:**
-- `page` (optional): Page number (default: 1)
-- `size` (optional): Page size (default: 20)
-- `status` (optional): Filter by status
-- `name` (optional): Filter by name
+**쿼리 파라미터:**
+- `page` (선택): 페이지 번호 (기본값: 1)
+- `size` (선택): 페이지 크기 (기본값: 20)
+- `status` (선택): 상태별 필터
+- `name` (선택): 이름별 필터
 
-**Response:**
+**응답:**
 ```json
 {
   "appraisals": [...],
@@ -291,34 +310,34 @@ GET /api/v1/mcp/appraisals
 }
 ```
 
-#### Get Response Results
+#### 응답 결과 조회
 
 ```http
 GET /api/v1/mcp/appraisals/:appraisalId/groups/:groupId/responses
 ```
 
-**Path Parameters:**
-- `appraisalId`: Appraisal ID
-- `groupId`: Group ID
+**경로 파라미터:**
+- `appraisalId`: 평가 ID
+- `groupId`: 그룹 ID
 
-**Query Parameters:**
-- `page` (optional): Page number
-- `size` (optional): Page size
+**쿼리 파라미터:**
+- `page` (선택): 페이지 번호
+- `size` (선택): 페이지 크기
 
-#### Validate Workspace
+#### 워크스페이스 검증
 
 ```http
 POST /api/v1/mcp/workspace/validate
 ```
 
-**Request Body:**
+**요청 본문:**
 ```json
 {
   "workspaceHash": "04dfe596cb2bc3f10b70606fd80b8068"
 }
 ```
 
-**Response:**
+**응답:**
 ```json
 {
   "valid": true,
@@ -326,15 +345,15 @@ POST /api/v1/mcp/workspace/validate
 }
 ```
 
-#### MCP Health Check
+#### MCP 헬스 체크
 
 ```http
 GET /api/v1/mcp/health
 ```
 
-No authentication required.
+인증이 필요하지 않습니다.
 
-**Response:**
+**응답:**
 ```json
 {
   "status": "healthy",
@@ -344,20 +363,20 @@ No authentication required.
 
 ---
 
-### Integrated Processing
+### 통합 처리
 
-#### Process with OpenAI + MCP
+#### OpenAI + MCP로 처리
 
 ```http
 POST /api/v1/process
 ```
 
-Combines OpenAI processing with MCP tool execution for advanced workflows.
+고급 워크플로우를 위해 OpenAI 처리와 MCP 도구 실행을 결합합니다.
 
-**Request Body:**
+**요청 본문:**
 ```json
 {
-  "prompt": "Analyze current appraisals and provide insights",
+  "prompt": "현재 평가를 분석하고 인사이트를 제공하세요",
   "model": "gpt-4",
   "mcpTools": ["get_appraisals"],
   "temperature": 0.5,
@@ -366,22 +385,22 @@ Combines OpenAI processing with MCP tool execution for advanced workflows.
 }
 ```
 
-**Parameters:**
+**파라미터:**
 
-| Field | Type | Required | Description |
+| 필드 | 타입 | 필수 | 설명 |
 |-------|------|----------|-------------|
-| prompt | string | Yes | The prompt to process |
-| model | string | No | OpenAI model (default: "gpt-3.5-turbo") |
-| mcpTools | array | No | List of MCP tools to use |
-| temperature | number | No | Creativity control (0-2) |
-| maxTokens | number | No | Maximum response tokens |
-| stream | boolean | No | Enable streaming |
+| prompt | string | 예 | 처리할 프롬프트 |
+| model | string | 아니오 | OpenAI 모델 (기본값: "gpt-3.5-turbo") |
+| mcpTools | array | 아니오 | 사용할 MCP 도구 목록 |
+| temperature | number | 아니오 | 창의성 제어 (0-2) |
+| maxTokens | number | 아니오 | 최대 응답 토큰 |
+| stream | boolean | 아니오 | 스트리밍 활성화 |
 
-**Response:**
+**응답:**
 ```json
 {
   "llmResponse": {
-    "content": "Based on the analysis...",
+    "content": "분석 결과에 따르면...",
     "model": "gpt-4",
     "usage": {...}
   },
@@ -392,14 +411,14 @@ Combines OpenAI processing with MCP tool execution for advanced workflows.
 
 ---
 
-## Error Handling
+## 오류 처리
 
-### Error Response Format
+### 오류 응답 형식
 
 ```json
 {
   "error": {
-    "message": "Error description",
+    "message": "오류 설명",
     "statusCode": 400,
     "details": {}
   },
@@ -408,52 +427,52 @@ Combines OpenAI processing with MCP tool execution for advanced workflows.
 }
 ```
 
-### Common Error Codes
+### 일반적인 오류 코드
 
-| Code | Description |
+| 코드 | 설명 |
 |------|-------------|
-| 400 | Bad Request - Invalid parameters |
-| 401 | Unauthorized - Missing or invalid API key |
-| 403 | Forbidden - Access denied |
-| 404 | Not Found - Resource doesn't exist |
-| 429 | Too Many Requests - Rate limit exceeded |
-| 500 | Internal Server Error |
-| 503 | Service Unavailable |
+| 400 | 잘못된 요청 - 유효하지 않은 파라미터 |
+| 401 | 인증되지 않음 - API 키 누락 또는 유효하지 않음 |
+| 403 | 금지됨 - 접근 거부 |
+| 404 | 찾을 수 없음 - 리소스가 존재하지 않음 |
+| 429 | 너무 많은 요청 - 요청 제한 초과 |
+| 500 | 내부 서버 오류 |
+| 503 | 서비스 이용 불가 |
 
 ---
 
-## Rate Limiting
+## 요청 제한
 
-Rate limits are applied per API key:
+API 키별로 요청 제한이 적용됩니다:
 
-| Endpoint Type | Limit | Window |
+| 엔드포인트 유형 | 제한 | 시간 창 |
 |--------------|-------|---------|
-| Standard | 100 requests | 1 minute |
-| Strict (auth) | 10 requests | 1 minute |
-| Lenient (health) | 1000 requests | 1 minute |
+| 표준 | 100 요청 | 1분 |
+| 엄격 (인증) | 10 요청 | 1분 |
+| 느슨 (헬스) | 1000 요청 | 1분 |
 
-Rate limit headers are included in responses:
-- `X-RateLimit-Limit`: Maximum requests allowed
-- `X-RateLimit-Remaining`: Requests remaining
-- `X-RateLimit-Reset`: Time when limit resets (Unix timestamp)
+응답에 포함되는 요청 제한 헤더:
+- `X-RateLimit-Limit`: 허용된 최대 요청 수
+- `X-RateLimit-Remaining`: 남은 요청 수
+- `X-RateLimit-Reset`: 제한이 재설정되는 시간 (Unix 타임스탬프)
 
 ---
 
-## Caching
+## 캐싱
 
-The following data is cached for performance:
+성능을 위해 다음 데이터가 캐시됩니다:
 
-| Data Type | Cache Duration |
+| 데이터 유형 | 캐시 기간 |
 |-----------|----------------|
-| MCP tool list | 1 hour |
-| MCP appraisals | 5 minutes |
-| LLM responses (temperature=0) | 5 minutes |
+| MCP 도구 목록 | 1시간 |
+| MCP 평가 | 5분 |
+| LLM 응답 (temperature=0) | 5분 |
 
-Cache can be bypassed by including `Cache-Control: no-cache` header.
+`Cache-Control: no-cache` 헤더를 포함하여 캐시를 우회할 수 있습니다.
 
 ---
 
-## Code Examples
+## 코드 예제
 
 ### JavaScript/Node.js
 
@@ -468,7 +487,7 @@ const client = axios.create({
   }
 });
 
-// Chat with OpenAI
+// OpenAI와 채팅
 async function chat(message) {
   const response = await client.post('/api/v1/llm/chat', {
     model: 'gpt-3.5-turbo',
@@ -477,7 +496,7 @@ async function chat(message) {
   return response.data;
 }
 
-// Execute MCP tool
+// MCP 도구 실행
 async function executeTool(toolName, args) {
   const response = await client.post('/api/v1/mcp/tools/call', {
     name: toolName,
@@ -486,7 +505,7 @@ async function executeTool(toolName, args) {
   return response.data;
 }
 
-// Integrated processing
+// 통합 처리
 async function process(prompt) {
   const response = await client.post('/api/v1/process', {
     prompt: prompt,
@@ -541,25 +560,25 @@ class TalenxClient:
         )
         return response.json()
 
-# Usage
+# 사용 예시
 client = TalenxClient('tlx_0123456789abcdef0123456789abcdef')
-result = client.chat('Hello!')
+result = client.chat('안녕하세요!')
 print(result)
 ```
 
 ### cURL
 
 ```bash
-# Chat completion
+# 채팅 완성
 curl -X POST http://localhost:1111/api/v1/llm/chat \
   -H "X-API-Key: tlx_0123456789abcdef0123456789abcdef" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "gpt-3.5-turbo",
-    "messages": [{"role": "user", "content": "Hello!"}]
+    "messages": [{"role": "user", "content": "안녕하세요!"}]
   }'
 
-# Execute MCP tool
+# MCP 도구 실행
 curl -X POST http://localhost:1111/api/v1/mcp/tools/call \
   -H "X-API-Key: tlx_0123456789abcdef0123456789abcdef" \
   -H "Content-Type: application/json" \
@@ -568,12 +587,12 @@ curl -X POST http://localhost:1111/api/v1/mcp/tools/call \
     "arguments": {"page": 1, "size": 10}
   }'
 
-# Integrated processing
+# 통합 처리
 curl -X POST http://localhost:1111/api/v1/process \
   -H "X-API-Key: tlx_0123456789abcdef0123456789abcdef" \
   -H "Content-Type: application/json" \
   -d '{
-    "prompt": "Analyze appraisals",
+    "prompt": "평가 분석",
     "model": "gpt-4",
     "mcpTools": ["get_appraisals"]
   }'
@@ -581,41 +600,41 @@ curl -X POST http://localhost:1111/api/v1/process \
 
 ---
 
-## Webhooks (Coming Soon)
+## 웹훅 (곧 출시)
 
-Future support for webhook notifications on:
-- Long-running task completion
-- Error events
-- Usage threshold alerts
-
----
-
-## Best Practices
-
-1. **API Key Security**
-   - Store API keys in environment variables
-   - Never commit keys to version control
-   - Rotate keys regularly
-
-2. **Error Handling**
-   - Implement exponential backoff for retries
-   - Log errors for debugging
-   - Handle rate limit responses gracefully
-
-3. **Performance**
-   - Use streaming for long responses
-   - Leverage caching when possible
-   - Batch requests where appropriate
-
-4. **Token Usage**
-   - Monitor usage via `/api/v1/llm/usage`
-   - Set appropriate `maxTokens` limits
-   - Use lower temperature for consistent responses
+다음에 대한 웹훅 알림 지원 예정:
+- 장시간 실행 작업 완료
+- 오류 이벤트
+- 사용량 임계값 경고
 
 ---
 
-## Support
+## 모범 사례
 
-For issues or questions:
-- GitHub Issues: [github.com/yourusername/talenx-llm-gateway](https://github.com/yourusername/talenx-llm-gateway)
-- API Status: Check `/health` endpoint
+1. **API 키 보안**
+   - 환경 변수에 API 키 저장
+   - 버전 관리에 키를 커밋하지 않기
+   - 정기적으로 키 교체
+
+2. **오류 처리**
+   - 재시도를 위한 지수 백오프 구현
+   - 디버깅을 위한 오류 로깅
+   - 요청 제한 응답을 우아하게 처리
+
+3. **성능**
+   - 긴 응답에는 스트리밍 사용
+   - 가능한 경우 캐싱 활용
+   - 적절한 경우 요청 배치 처리
+
+4. **토큰 사용량**
+   - `/api/v1/llm/usage`를 통해 사용량 모니터링
+   - 적절한 `maxTokens` 제한 설정
+   - 일관된 응답을 위해 낮은 temperature 사용
+
+---
+
+## 지원
+
+문제나 질문이 있는 경우:
+- GitHub 이슈: [github.com/yourusername/talenx-llm-gateway](https://github.com/yourusername/talenx-llm-gateway)
+- API 상태: `/health` 엔드포인트 확인

@@ -1,44 +1,45 @@
-# Talenx LLM Gateway
+# Talenx LLM 게이트웨이
 
-A lightweight, production-ready API gateway that seamlessly integrates OpenAI models with MCP (Model Context Protocol) servers. Features automatic API key registration and intelligent caching for optimal performance.
+OpenAI 모델과 MCP(Model Context Protocol) 서버를 매끄럽게 통합하는 경량 프로덕션 준비 API 게이트웨이입니다. 자동 API 키 등록과 지능형 캐싱으로 최적의 성능을 제공합니다.
 
-## 🚀 Key Features
+## 🚀 주요 기능
 
-- **Auto API Key Registration** - API keys are automatically registered in Redis on first use
-- **OpenAI Integration** - Support for GPT-3.5, GPT-4 and other OpenAI models
-- **MCP Integration** - Connect to MCP servers for extended tool capabilities
-- **Smart Caching** - Redis-based caching for improved response times
-- **Rate Limiting** - Built-in protection against API abuse
-- **Usage Tracking** - Monitor token usage for billing and analytics
+- **유연한 인증** - API 키, TTID 쿠키, Bearer 토큰 지원
+- **OpenAI 통합** - GPT-3.5, GPT-4 및 기타 OpenAI 모델 지원
+- **MCP 통합** - TTID 쿠키를 통한 MCP 서버 연결
+- **인증 패스스루** - 클라이언트 인증 정보를 MCP 서버에 직접 전달
+- **스마트 캐싱** - 응답 시간 개선을 위한 Redis 기반 캐싱
+- **요청 제한** - API 남용 방지를 위한 내장 보호 기능
+- **사용량 추적** - 과금 및 분석을 위한 토큰 사용량 모니터링
 
-## 📋 Prerequisites
+## 📋 사전 요구사항
 
 - Node.js 18+
-- Redis Server
-- OpenAI API Key
+- Redis 서버
+- OpenAI API 키
 
-## 🛠️ Quick Start
+## 🛠️ 빠른 시작
 
-### 1. Installation
+### 1. 설치
 
 ```bash
-# Clone the repository
+# 저장소 복제
 git clone https://github.com/yourusername/talenx-llm-gateway.git
 cd talenx-llm-gateway
 
-# Install dependencies
+# 의존성 설치
 npm install
 
-# Set up environment variables
+# 환경 변수 설정
 cp .env.example .env
 ```
 
-### 2. Configuration
+### 2. 설정
 
-Edit `.env` file with your settings:
+`.env` 파일을 편집하여 설정을 구성합니다:
 
 ```env
-# Server
+# 서버
 PORT=1111
 NODE_ENV=development
 
@@ -49,44 +50,60 @@ REDIS_PORT=6379
 # OpenAI
 OPENAI_API_KEY=sk-your-openai-api-key
 
-# MCP Server (optional)
+# MCP 서버 (선택사항)
 MCP_SERVER_URL=http://localhost:9999
 MCP_WORKSPACE_HASH=your_workspace_hash
 ```
 
-### 3. Start the Server
+### 3. 서버 시작
 
 ```bash
-# Development mode
+# 개발 모드
 npm run dev
 
-# Production mode
+# 프로덕션 모드
 npm run build
 npm start
 ```
 
-## 🔑 Authentication
+## 🔑 인증
 
-All API requests require an `X-API-Key` header. The API key format is:
+### 1. API 키 인증 (선택사항)
+모든 API 요청에 `X-API-Key` 헤더를 사용할 수 있습니다:
 
+```http
+X-API-Key: tlx_0123456789abcdef0123456789abcdef
 ```
-tlx_[32 hexadecimal characters]
+
+**형식:** `tlx_` + 32자리 16진수
+
+### 2. TTID 쿠키 인증 (MCP 연동용)
+MCP 서버와 연동할 때 TTID 쿠키를 사용합니다:
+
+```http
+Cookie: TTID=eyJraWQiOiI2Mzg1ZWRhYy05NTAwLTQwYzAtOTQzNy04YThlYmRkNWY1NWYiLCJhbGciOiJSUzI1NiJ9...
 ```
 
-Example: `tlx_0123456789abcdef0123456789abcdef`
+### 3. Bearer 토큰 인증 (대체 방법)
+```http
+Authorization: Bearer your_jwt_token_here
+```
 
-> **Note:** API keys are automatically registered in Redis on first use - no manual registration needed!
+> **참고:** 
+> - API 키는 형식만 검증되며 서버에 저장되지 않습니다
+> - MCP 기능을 사용하려면 TTID 쿠키 또는 Bearer 토큰이 필요합니다
+> - TTID는 원본 API 서버의 인증에 사용됩니다
 
-### Example Request
+### 예시 요청
 
 ```bash
 curl -X GET http://localhost:1111/api/v1/llm/providers \
   -H "X-API-Key: tlx_0123456789abcdef0123456789abcdef"
 ```
 
-## 📚 Core API Endpoints
+## 📚 핵심 API 엔드포인트
 
-### OpenAI Chat Completion
+### OpenAI 채팅 완성
 
 ```http
 POST /api/v1/llm/chat
@@ -96,7 +113,7 @@ POST /api/v1/llm/chat
 {
   "model": "gpt-3.5-turbo",
   "messages": [
-    {"role": "user", "content": "Hello!"}
+    {"role": "user", "content": "안녕하세요!"}
   ],
   "temperature": 0.7,
   "maxTokens": 500,
@@ -104,7 +121,7 @@ POST /api/v1/llm/chat
 }
 ```
 
-### MCP Tool Execution
+### MCP 도구 실행
 
 ```http
 POST /api/v1/mcp/tools/call
@@ -120,7 +137,7 @@ POST /api/v1/mcp/tools/call
 }
 ```
 
-### Integrated Processing (OpenAI + MCP)
+### 통합 처리 (OpenAI + MCP)
 
 ```http
 POST /api/v1/process
@@ -128,121 +145,121 @@ POST /api/v1/process
 
 ```json
 {
-  "prompt": "Analyze the current appraisals and provide insights",
+  "prompt": "현재 평가를 분석하고 인사이트를 제공해주세요",
   "model": "gpt-4",
   "mcpTools": ["get_appraisals"],
   "temperature": 0.5
 }
 ```
 
-## 📁 Project Structure
+## 📁 프로젝트 구조
 
 ```
 src/
-├── config/          # Configuration management
+├── config/          # 설정 관리
 ├── middleware/      
-│   ├── auth.ts      # API key authentication & auto-registration
+│   ├── auth.ts      # API 키 인증 및 자동 등록
 │   ├── rateLimiter.ts
 │   └── validation.ts
 ├── routes/          
-│   ├── auth.ts      # Authentication endpoints
-│   ├── llm.ts       # OpenAI endpoints
-│   ├── mcp.ts       # MCP endpoints
-│   └── process.ts   # Integrated processing
+│   ├── auth.ts      # 인증 엔드포인트
+│   ├── llm.ts       # OpenAI 엔드포인트
+│   ├── mcp.ts       # MCP 엔드포인트
+│   └── process.ts   # 통합 처리
 ├── services/        
-│   ├── llm/         # OpenAI service layer
-│   ├── mcp/         # MCP client
+│   ├── llm/         # OpenAI 서비스 계층
+│   ├── mcp/         # MCP 클라이언트
 │   └── orchestrator.ts
 └── utils/           
-    ├── logger.ts    # Winston logger
-    └── redis.ts     # Redis client
+    ├── logger.ts    # Winston 로거
+    └── redis.ts     # Redis 클라이언트
 ```
 
-## 🧪 Testing
+## 🧪 테스트
 
 ```bash
-# Run tests
+# 테스트 실행
 npm test
 
-# Check types
+# 타입 체크
 npm run typecheck
 
-# Lint code
+# 린트 검사
 npm run lint
 ```
 
-## 📊 Monitoring
+## 📊 모니터링
 
-### Health Check
+### 헬스 체크
 
 ```http
 GET /health
 ```
 
-Returns server status, Redis connection, and uptime.
+서버 상태, Redis 연결 및 가동 시간을 반환합니다.
 
-### Usage Statistics
+### 사용량 통계
 
 ```http
 GET /api/v1/llm/usage?days=7
 ```
 
-Returns token usage statistics for the specified period.
+지정된 기간의 토큰 사용량 통계를 반환합니다.
 
-## 🔧 Advanced Configuration
+## 🔧 고급 설정
 
-### Rate Limiting
+### 요청 제한
 
-Configure in `.env`:
+`.env`에서 설정:
 
 ```env
-RATE_LIMIT_WINDOW_MS=60000  # 1 minute
+RATE_LIMIT_WINDOW_MS=60000  # 1분
 RATE_LIMIT_MAX_REQUESTS=100
 ```
 
-### Caching
+### 캐싱
 
-- MCP tools: 1 hour cache
-- LLM responses (temperature=0): 5 minutes cache
-- Appraisal data: 5 minutes cache
+- MCP 도구: 1시간 캐시
+- LLM 응답 (temperature=0): 5분 캐시
+- 평가 데이터: 5분 캐시
 
-### Supported OpenAI Models
+### 지원되는 OpenAI 모델
 
 - gpt-4-turbo-preview
 - gpt-4
 - gpt-3.5-turbo
 - gpt-3.5-turbo-16k
 
-## 🐛 Troubleshooting
+## 🐛 문제 해결
 
-### Redis Connection Error
+### Redis 연결 오류
 
 ```bash
-# Check Redis is running
+# Redis가 실행 중인지 확인
 redis-cli ping
 
-# Verify port in .env matches Redis config
+# .env의 포트가 Redis 설정과 일치하는지 확인
 echo $REDIS_PORT
 ```
 
-### Invalid API Key Format
+### 잘못된 API 키 형식
 
-Ensure your API key follows the pattern: `tlx_[32 hex chars]`
+API 키가 다음 패턴을 따르는지 확인: `tlx_[32자리 16진수]`
 
 ```javascript
-// Valid format example
+// 유효한 형식 예시
 const validKey = 'tlx_0123456789abcdef0123456789abcdef';
 ```
 
-### OpenAI API Errors
+### OpenAI API 오류
 
-- Verify your OpenAI API key is valid
-- Check rate limits on your OpenAI account
-- Ensure selected model is available for your account
+- OpenAI API 키가 유효한지 확인
+- OpenAI 계정의 요청 제한 확인
+- 선택한 모델이 계정에서 사용 가능한지 확인
 
-## 📦 API Response Format
+## 📦 API 응답 형식
 
-### Success Response
+### 성공 응답
 
 ```json
 {
@@ -255,12 +272,12 @@ const validKey = 'tlx_0123456789abcdef0123456789abcdef';
 }
 ```
 
-### Error Response
+### 오류 응답
 
 ```json
 {
   "error": {
-    "message": "Error description",
+    "message": "오류 설명",
     "statusCode": 400
   },
   "timestamp": "2024-01-01T00:00:00.000Z",
@@ -268,20 +285,20 @@ const validKey = 'tlx_0123456789abcdef0123456789abcdef';
 }
 ```
 
-## 🤝 Contributing
+## 🤝 기여
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+기여를 환영합니다! Pull Request를 제출해주세요.
 
-## 📄 License
+## 📄 라이선스
 
-MIT License - see LICENSE file for details
+MIT 라이선스 - 자세한 내용은 LICENSE 파일을 참조하세요
 
-## 🔗 Links
+## 🔗 링크
 
-- [API Documentation](./docs/API_DOCUMENTATION.md)
-- [Postman Collection](./postman/)
-- [OpenAI API Reference](https://platform.openai.com/docs)
+- [API 문서](./docs/API_DOCUMENTATION.md)
+- [Postman 컬렉션](./postman/)
+- [OpenAI API 참조](https://platform.openai.com/docs)
 
 ---
 
-Built with ❤️ using Node.js, TypeScript, and Redis
+Node.js, TypeScript, Redis로 ❤️를 담아 제작

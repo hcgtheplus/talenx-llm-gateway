@@ -1,5 +1,5 @@
 import { llmService, LLMMessage } from './llm';
-import { mcpClient } from './mcp/client';
+import { mcpClient, MCPAuthConfig } from './mcp/client';
 import { redisClient } from '../utils/redis';
 import { logger } from '../utils/logger';
 import { AppError } from '../middleware/errorHandler';
@@ -10,7 +10,7 @@ export interface ProcessRequest {
   mcpTools?: string[];
   temperature?: number;
   maxTokens?: number;
-  clientToken?: string;  // 클라이언트에서 전달받은 토큰
+  authConfig?: MCPAuthConfig;  // 클라이언트에서 전달받은 인증 정보
 }
 
 export interface ProcessResponse {
@@ -33,22 +33,23 @@ export class Orchestrator {
     
     try {
       logger.info('Processing integrated request', {
-        hasToken: !!request.clientToken,
+        hasAuth: !!request.authConfig,
+        hasTTID: !!request.authConfig?.ttid,
         mcpTools: request.mcpTools,
       });
 
-      // 1. MCP 데이터 수집 (클라이언트 토큰 사용)
+      // 1. MCP 데이터 수집 (클라이언트 인증 사용)
       let mcpData: any = null;
       let enrichedPrompt = request.prompt;
 
-      if (request.mcpTools && request.mcpTools.length > 0 && request.clientToken) {
-        logger.info('Fetching MCP data with client token');
+      if (request.mcpTools && request.mcpTools.length > 0) {
+        logger.info('Fetching MCP data', {
+          hasAuthConfig: !!request.authConfig,
+          hasTTID: !!request.authConfig?.ttid
+        });
         
-        // 클라이언트 토큰을 MCP에 설정
-        await mcpClient.setAuthToken(request.clientToken);
-        
-        // MCP 도구 실행
-        mcpData = await this.executeMCPTools(request.mcpTools);
+        // MCP 도구 실행 (인증 정보 전달)
+        mcpData = await this.executeMCPTools(request.mcpTools, request.authConfig);
         
         // 프롬프트에 MCP 데이터 추가
         enrichedPrompt = this.enrichPrompt(request.prompt, mcpData);
@@ -115,7 +116,7 @@ export class Orchestrator {
   /**
    * MCP 도구 실행
    */
-  private async executeMCPTools(tools: string[]): Promise<any> {
+  private async executeMCPTools(tools: string[], authConfig?: MCPAuthConfig): Promise<any> {
     const results: Record<string, any> = {};
     
     for (const toolName of tools) {
@@ -125,17 +126,17 @@ export class Orchestrator {
         let result;
         switch (toolName) {
           case 'get_appraisals':
-            result = await mcpClient.getAppraisals();
+            result = await mcpClient.getAppraisals({}, authConfig);
             break;
           
           case 'get_response_results':
             // 기본값 사용, 실제로는 파라미터 전달 필요
-            result = await mcpClient.getResponseResults(1, 1);
+            result = await mcpClient.getResponseResults(1, 1, {}, authConfig);
             break;
           
           default:
             // 일반 도구 호출
-            result = await mcpClient.callTool({ name: toolName });
+            result = await mcpClient.callTool({ name: toolName }, authConfig);
         }
         
         results[toolName] = result;
@@ -184,9 +185,8 @@ export class Orchestrator {
     let mcpData: any = null;
     let enrichedPrompt = request.prompt;
 
-    if (request.mcpTools && request.mcpTools.length > 0 && request.clientToken) {
-      await mcpClient.setAuthToken(request.clientToken);
-      mcpData = await this.executeMCPTools(request.mcpTools);
+    if (request.mcpTools && request.mcpTools.length > 0) {
+      mcpData = await this.executeMCPTools(request.mcpTools, request.authConfig);
       enrichedPrompt = this.enrichPrompt(request.prompt, mcpData);
       
       // MCP 데이터를 먼저 스트리밍
