@@ -5,7 +5,6 @@ import { validate } from '../middleware/validation';
 import { asyncHandler } from '../middleware/errorHandler';
 import { orchestrator } from '../services/orchestrator';
 import { logger } from '../utils/logger';
-import { MCPAuthConfig } from '../services/mcp/client';
 
 const router = Router();
 
@@ -32,17 +31,12 @@ router.post(
       stream 
     } = req.body;
 
-    // 클라이언트의 인증 정보 사용 (auth middleware에서 이미 추출됨)
-    const authConfig: MCPAuthConfig = {
-      authToken: req.user?.authToken,
-      ttid: req.user?.ttid,
-      cookies: req.user?.cookies,
-    };
+    // 클라이언트의 TTID 사용 (auth middleware에서 이미 추출됨)
+    const ttid = req.user?.ttid;
 
     logger.info('Processing integrated request', {
       userId: req.user?.id,
-      hasAuth: !!authConfig,
-      hasTTID: !!authConfig.ttid,
+      hasTTID: !!ttid,
       mcpTools: mcpTools?.length || 0,
       stream,
     });
@@ -53,7 +47,7 @@ router.post(
       mcpTools,
       temperature,
       maxTokens,
-      authConfig,
+      ttid,
     };
 
     if (stream) {
@@ -107,28 +101,24 @@ router.post(
   })
 );
 
-// MCP 도구 목록 조회 (클라이언트 인증 사용)
+// MCP 도구 목록 조회 (TTID 사용)
 router.get(
   '/available-tools',
   authenticate,
   asyncHandler(async (req: AuthRequest, res: Response) => {
-    const authConfig: MCPAuthConfig = {
-      authToken: req.user?.authToken,
-      ttid: req.user?.ttid,
-      cookies: req.user?.cookies,
-    };
+    const ttid = req.user?.ttid;
 
-    if (!authConfig.authToken && !authConfig.ttid) {
+    if (!ttid) {
       res.json({ 
         tools: [],
-        message: 'No authentication provided (TTID or Bearer token required). MCP tools unavailable.' 
+        message: 'No TTID cookie provided. MCP tools unavailable.' 
       });
       return;
     }
 
     try {
       const { mcpClient } = await import('../services/mcp/client');
-      const tools = await mcpClient.listTools(authConfig);
+      const tools = await mcpClient.listTools(ttid);
       
       res.json({ 
         tools,

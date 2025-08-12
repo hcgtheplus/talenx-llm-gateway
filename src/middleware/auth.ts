@@ -5,13 +5,11 @@ export interface AuthRequest extends Request {
   user?: {
     id: string;
     apiKey?: string;
-    authToken?: string;  // Original auth token for MCP server
-    ttid?: string;       // TTID cookie for authentication
-    cookies?: string;    // Full cookie string to pass through
+    ttid?: string;       // TTID cookie for MCP authentication
   };
 }
 
-// API Key authentication - validates format and passes through
+// Authentication middleware - validates API key format and extracts TTID
 export const apiKeyAuth = async (
   req: AuthRequest,
   res: Response,
@@ -19,8 +17,7 @@ export const apiKeyAuth = async (
 ): Promise<void> => {
   try {
     const apiKey = req.headers['x-api-key'] as string;
-    const authToken = req.headers['authorization'] as string;  // Get auth token for MCP
-    const cookieHeader = req.headers.cookie as string;  // Get full cookie string
+    const cookieHeader = req.headers.cookie as string;
     
     // Extract TTID from cookie header
     let ttid: string | undefined;
@@ -32,8 +29,8 @@ export const apiKeyAuth = async (
     }
     
     // Check for any form of authentication
-    if (!apiKey && !authToken && !ttid) {
-      res.status(401).json({ error: 'Authentication is required (API Key, Bearer token, or TTID cookie)' });
+    if (!apiKey && !ttid) {
+      res.status(401).json({ error: 'Authentication is required (API Key or TTID cookie)' });
       return;
     }
 
@@ -43,24 +40,21 @@ export const apiKeyAuth = async (
       return;
     }
 
-    // Attach auth info to request (no Redis storage)
+    // Attach auth info to request
     req.user = {
-      id: apiKey || ttid || 'bearer_auth',  // Use API key, TTID, or indicate bearer auth
+      id: apiKey || ttid?.substring(0, 20) || 'anonymous',  // Use API key or part of TTID as ID
       apiKey,
-      authToken: authToken?.replace('Bearer ', ''),  // Store clean token for MCP
       ttid,  // Store TTID for MCP server
-      cookies: cookieHeader,  // Store full cookie string for passthrough
     };
 
     logger.debug('Auth extracted:', {
       hasApiKey: !!apiKey,
-      hasAuthToken: !!authToken,
       hasTTID: !!ttid,
     });
 
     next();
   } catch (error) {
-    logger.error('API key authentication error:', error);
+    logger.error('Authentication error:', error);
     res.status(500).json({ error: 'Authentication failed' });
   }
 };
