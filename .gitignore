@@ -37,4 +37,10 @@ dump.rdb
 
 # Temporary files
 temp/
-tmp/
+tmp/# Additional files to ignore
+.env.local
+.env.production
+dump.rdb
+appendonlydir/
+*.aof
+*.rdb
