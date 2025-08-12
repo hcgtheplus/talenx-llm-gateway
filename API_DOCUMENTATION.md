@@ -96,7 +96,7 @@ data: [DONE]
 
 **요청 헤더**:
 ```
-Authorization: Bearer tlx_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+Cookie: TTID=eyJraWQiOiI2Mzg1ZWRhYy05NTAwLTQwYzAtOTQzNy04YThlYmRkNWY1NWYi...
 Content-Type: application/json
 ```
 
@@ -173,7 +173,7 @@ Cookie: TTID=your_jwt_token (선택사항)
 
 **요청 헤더**:
 ```
-Authorization: Bearer tlx_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+Cookie: TTID=eyJraWQiOiI2Mzg1ZWRhYy05NTAwLTQwYzAtOTQzNy04YThlYmRkNWY1NWYi...
 Content-Type: application/json
 ```
 

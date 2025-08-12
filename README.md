@@ -93,8 +93,7 @@ LLM이 프롬프트를 분석하여 필요한 MCP 도구를 자동으로 선택�
 
 ```bash
 curl -X POST http://localhost:1111/api/v1/process \
-  -H "Authorization: Bearer tlx_your_api_key" \
-  -H "Cookie: TTID=your_ttid_token" \
+  -H "Cookie: TTID=eyJraWQiOiI2Mzg1ZWRhYy05NTAwLTQwYzAtOTQzNy04YThlYmRkNWY1NWYi..." \
   -H "Content-Type: application/json" \
   -d '{
     "prompt": "평가 목록을 보여줘",
@@ -109,7 +108,7 @@ MCP 도구 없이 순수 LLM만 사용하여 응답을 생성합니다.
 
 ```bash
 curl -X POST http://localhost:1111/api/v1/prompt \
-  -H "Authorization: Bearer tlx_your_api_key" \
+  -H "Cookie: TTID=eyJraWQiOiI2Mzg1ZWRhYy05NTAwLTQwYzAtOTQzNy04YThlYmRkNWY1NWYi..." \
   -H "Content-Type: application/json" \
   -d '{
     "prompt": "Node.js란 무엇인가요?",
@@ -125,8 +124,7 @@ curl -X POST http://localhost:1111/api/v1/prompt \
 const response = await fetch('http://localhost:1111/api/v1/process', {
   method: 'POST',
   headers: {
-    'Authorization': 'Bearer tlx_your_api_key',
-    'Cookie': 'TTID=your_ttid_token',
+    'Cookie': 'TTID=eyJraWQiOiI2Mzg1ZWRhYy05NTAwLTQwYzAtOTQzNy04YThlYmRkNWY1NWYi...',
     'Content-Type': 'application/json'
   },
   body: JSON.stringify({
@@ -156,25 +154,24 @@ const reader = response.body.getReader();
 
 ## 인증
 
-### API 키 인증
-
-모든 요청에는 `Authorization` 헤더에 API 키가 필요합니다:
-
-```
-Authorization: Bearer tlx_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-```
-
-API 키는 `tlx_` 접두사와 32자의 16진수로 구성됩니다.
-
 ### TTID 쿠키 인증
 
-MCP 도구를 사용하려면 TTID 쿠키가 필요합니다:
+모든 API 요청에는 TTID 쿠키가 필요합니다:
 
 ```
-Cookie: TTID=your_jwt_token
+Cookie: TTID=eyJraWQiOiI2Mzg1ZWRhYy05NTAwLTQwYzAtOTQzNy04YThlYmRkNWY1NWYi...
 ```
 
-TTID는 원본 서비스의 JWT 토큰으로, MCP 서버로 그대로 전달됩니다.
+TTID는 원본 서비스의 JWT 토큰으로, 사용자 인증 및 MCP 서버 접근에 사용됩니다.
+
+### TTID 구조
+
+TTID는 JWT 토큰으로 다음 정보를 포함합니다:
+- `sub`: 사용자 ID
+- `accountId`: 계정 ID
+- `loginId`: 로그인 ID (이메일)
+- `exp`: 토큰 만료 시간
+- `iss`: 발급자
 
 ## 프로젝트 구조 및 파일 역할
 
@@ -202,10 +199,10 @@ TTID는 원본 서비스의 JWT 토큰으로, MCP 서버로 그대로 전달됩�
   - Rate limiting 설정
 
 #### 🛡️ /middleware
-- **auth.ts** - API 키 및 TTID 인증 처리
-  - Bearer 토큰 검증
-  - TTID 쿠키 추출
-  - API 키 형식 검증 (tlx_*)
+- **auth.ts** - TTID 쿠키 인증 처리
+  - Cookie 헤더에서 TTID 추출
+  - JWT 토큰 검증
+  - 사용자 정보 파싱
 - **errorHandler.ts** - 전역 에러 처리 및 표준화된 에러 응답
 - **rateLimiter.ts** - API 요청 제한 (분당 100/10 요청)
 - **validation.ts** - 요청 데이터 유효성 검사
@@ -226,10 +223,8 @@ TTID는 원본 서비스의 JWT 토큰으로, MCP 서버로 그대로 전달됩�
   - `/mcp/tools/call` - 도구 직접 실행
   - `/mcp/health` - MCP 서버 상태
 - **auth.ts** - 인증 관련 라우트
-  - `/auth/api-key/generate` - 테스트용 키 생성
-  - `/auth/api-key/validate` - 키 형식 검증
-  - `/auth/api-key/info` - 키 정보
-  - `/auth/api-key/revoke` - 키 폐기 (정보용)
+  - `/auth/user-info` - TTID에서 사용자 정보 조회
+  - `/auth/status` - 인증 상태 확인
 
 #### 🧠 /services
 - **orchestrator.ts** - 핵심 비즈니스 로직

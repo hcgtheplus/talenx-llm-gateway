@@ -1,18 +1,8 @@
 {
   "info": {
     "name": "Talenx LLM Gateway",
-    "description": "프롬프트 기반 자동 MCP 도구 선택을 지원하는 OpenAI LLM 게이트웨이",
+    "description": "프롬프트 기반 자동 MCP 도구 선택을 지원하는 OpenAI LLM 게이트웨이 (TTID 인증)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-  },
-  "auth": {
-    "type": "bearer",
-    "bearer": [
-      {
-        "key": "token",
-        "value": "tlx_0123456789abcdef0123456789abcdef",
-        "type": "string"
-      }
-    ]
   },
   "variable": [
     {
@@ -21,13 +11,8 @@
       "type": "string"
     },
     {
-      "key": "apiKey",
-      "value": "tlx_0123456789abcdef0123456789abcdef",
-      "type": "string"
-    },
-    {
       "key": "ttid",
-      "value": "your_jwt_token_here",
+      "value": "eyJraWQiOiI2Mzg1ZWRhYy05NTAwLTQwYzAtOTQzNy04YThlYmRkNWY1NWYiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIxRUVCRDA2QjA1RTQxMUVGQjExQzBBMzFCOTYyODBBMiIsImF1ZCI6ImxvY2FsaG9zdCIsImFjY291bnRJZCI6IjFFRUJEMDZCMDVFNDExRUZCMTFDMEEzMUI5NjI4MEEyIiwibmJmIjoxNzU1MDEwNzQyLCJsb2dpbklkIjoieWpAcGVycGwuaW8iLCJpc3MiOiJsb2NhbGhvc3QiLCJleHAiOjE3NTUwMTE2NDIsImlhdCI6MTc1NTAxMDc0Mn0.XanPsIZhic8i7h_I8I9DG58oVEbesjuJhb4htb8d2XEKtKFmXr-4YDJOLUdX2TwuySs8R4xyOQ2YCpnDRNvNz1RBJCEVW2q-9TeY2X1BePiAoXnrtnQgSu5eMuf5vpBkKGKHH2Iuc8dFe5nmnMVkAE3rz5b-AnMRVkewaenfLQ8GAMmui26lbWU-sowK1F8fqC1ku2rXPiDHPpuQvClYK1iCqxWqwZHeWdmRjajKjdxyeA_OIPVs7pGJ4sA3lwk4R8fAXdtLJ6d5Qj5IApF6CGePAcByH7tkf6KeSGsslWF01w-r0nOdGD81AcIFLt629QFefZZExj318tGtjy0BxA",
       "type": "string"
     }
   ],
@@ -51,7 +36,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"prompt\": \"평가 목록을 보여줘\",\n  \"model\": \"gpt-3.5-turbo\",\n  \"temperature\": 0.7,\n  \"maxTokens\": 1000\n}"
+              "raw": "{\n  \"prompt\": \"2022년 평가 목록을 보여줘\",\n  \"model\": \"gpt-3.5-turbo\",\n  \"temperature\": 0.7,\n  \"maxTokens\": 1000\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/process",
@@ -95,6 +80,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "TTID={{ttid}}"
               }
             ],
             "body": {
@@ -140,6 +129,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "TTID={{ttid}}"
               }
             ],
             "body": {
@@ -162,6 +155,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "TTID={{ttid}}"
               }
             ],
             "body": {
@@ -184,6 +181,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "TTID={{ttid}}"
               }
             ],
             "body": {
@@ -202,7 +203,12 @@
           "name": "사용량 통계",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "TTID={{ttid}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/llm/usage?days=7",
               "host": ["{{baseUrl}}"],
@@ -221,7 +227,12 @@
           "name": "지원 프로바이더 목록",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "TTID={{ttid}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/llm/providers",
               "host": ["{{baseUrl}}"],
@@ -234,7 +245,12 @@
           "name": "모델 목록",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "TTID={{ttid}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/llm/models/openai",
               "host": ["{{baseUrl}}"],
@@ -267,7 +283,7 @@
           }
         },
         {
-          "name": "도구 직접 실행",
+          "name": "도구 직접 실행 - 평가 조회",
           "request": {
             "method": "POST",
             "header": [
@@ -282,18 +298,18 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"get_appraisals\",\n  \"arguments\": {\n    \"page\": 1,\n    \"size\": 10,\n    \"status\": \"pending\"\n  }\n}"
+              "raw": "{\n  \"name\": \"get_appraisals\",\n  \"arguments\": {\n    \"page\": 1,\n    \"size\": 10,\n    \"name\": \"2022\"\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/mcp/tools/call",
               "host": ["{{baseUrl}}"],
               "path": ["mcp", "tools", "call"]
             },
-            "description": "특정 MCP 도구를 직접 실행"
+            "description": "특정 MCP 도구를 직접 실행 (평가 목록 조회)"
           }
         },
         {
-          "name": "평가 응답 결과 조회",
+          "name": "도구 직접 실행 - 응답 결과 조회",
           "request": {
             "method": "POST",
             "header": [
@@ -325,8 +341,7 @@
             "header": [
               {
                 "key": "Cookie",
-                "value": "TTID={{ttid}}",
-                "disabled": true
+                "value": "TTID={{ttid}}"
               }
             ],
             "url": {
@@ -343,70 +358,34 @@
       "name": "인증",
       "item": [
         {
-          "name": "API 키 생성 (테스트용)",
+          "name": "사용자 정보 조회",
           "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/auth/api-key/generate",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "api-key", "generate"]
-            },
-            "description": "테스트용 API 키 생성 (서버에 저장되지 않음)"
-          }
-        },
-        {
-          "name": "API 키 검증",
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "POST",
+            "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
+                "key": "Cookie",
+                "value": "TTID={{ttid}}"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"apiKey\": \"tlx_0123456789abcdef0123456789abcdef\"\n}"
-            },
             "url": {
-              "raw": "{{baseUrl}}/auth/api-key/validate",
+              "raw": "{{baseUrl}}/auth/user-info",
               "host": ["{{baseUrl}}"],
-              "path": ["auth", "api-key", "validate"]
+              "path": ["auth", "user-info"]
             },
-            "description": "API 키 형식 검증"
+            "description": "TTID에서 사용자 정보 추출"
           }
         },
         {
-          "name": "API 키 정보",
+          "name": "인증 상태 확인",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/auth/api-key/info",
+              "raw": "{{baseUrl}}/auth/status",
               "host": ["{{baseUrl}}"],
-              "path": ["auth", "api-key", "info"]
+              "path": ["auth", "status"]
             },
-            "description": "현재 API 키 정보"
-          }
-        },
-        {
-          "name": "API 키 폐기 (정보용)",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/auth/api-key/revoke",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "api-key", "revoke"]
-            },
-            "description": "API 키 폐기 (실제로는 저장되지 않음)"
+            "description": "현재 인증 상태 확인"
           }
         }
       ]
@@ -417,9 +396,6 @@
         {
           "name": "Health Check",
           "request": {
-            "auth": {
-              "type": "noauth"
-            },
             "method": "GET",
             "header": [],
             "url": {
