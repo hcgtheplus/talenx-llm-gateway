@@ -5,13 +5,13 @@ dotenv.config();
 
 export const config = {
   server: {
-    port: parseInt(process.env.PORT || "3000", 10),
+    port: parseInt(process.env.PORT || "1111", 10),
     env: process.env.NODE_ENV || "development",
   },
 
   redis: {
     host: process.env.REDIS_HOST || "localhost",
-    port: parseInt(process.env.REDIS_PORT || "3333", 10),
+    port: parseInt(process.env.REDIS_PORT || "6379", 10),
     password: process.env.REDIS_PASSWORD || undefined,
     db: parseInt(process.env.REDIS_DB || "0", 10),
   },
@@ -29,7 +29,7 @@ export const config = {
   },
 
   mcp: {
-    serverUrl: process.env.MCP_SERVER_URL || "http://localhost:4000",
+    serverUrl: process.env.MCP_SERVER_URL || "http://localhost:9999",
     workspaceHash: process.env.MCP_WORKSPACE_HASH || "",
   },
 
