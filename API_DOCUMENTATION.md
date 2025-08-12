@@ -6,9 +6,10 @@ Talenx LLM Gateway API 상세 문서
 
 **Base URL**: `http://localhost:1111/api/v1`
 
-**인증**: 모든 API 요청에는 다음 중 하나의 인증이 필요합니다:
-- Authorization 헤더: `Bearer tlx_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`
-- Cookie 헤더: `TTID=your_jwt_token` (MCP 도구 사용시 필수)
+**인증**: 모든 API 요청에는 TTID 쿠키 인증이 필요합니다:
+- Cookie 헤더: `TTID=eyJraWQiOiI2Mzg1ZWRhYy05NTAwLTQwYzAtOTQzNy04YThlYmRkNWY1NWYi...`
+
+TTID는 JWT 형식의 토큰으로, 원본 서비스에서 발급된 인증 정보를 포함합니다.
 
 ## 엔드포인트
 
@@ -22,8 +23,7 @@ Talenx LLM Gateway API 상세 문서
 
 **요청 헤더**:
 ```
-Authorization: Bearer tlx_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-Cookie: TTID=your_jwt_token (선택사항, MCP 도구 사용시 필수)
+Cookie: TTID=eyJraWQiOiI2Mzg1ZWRhYy05NTAwLTQwYzAtOTQzNy04YThlYmRkNWY1NWYi...
 Content-Type: application/json
 ```
 
@@ -131,8 +131,7 @@ Content-Type: application/json
 
 **요청 헤더**:
 ```
-Authorization: Bearer tlx_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-Cookie: TTID=your_jwt_token (선택사항)
+Cookie: TTID=eyJraWQiOiI2Mzg1ZWRhYy05NTAwLTQwYzAtOTQzNy04YThlYmRkNWY1NWYi...
 ```
 
 **응답**:
@@ -154,8 +153,34 @@ Cookie: TTID=your_jwt_token (선택사항)
             "type": "number",
             "description": "페이지 크기",
             "default": 10
+          },
+          "status": {
+            "type": "string",
+            "description": "평가 상태 필터"
+          },
+          "name": {
+            "type": "string",
+            "description": "평가 이름 검색"
           }
         }
+      }
+    },
+    {
+      "name": "get_response_results",
+      "description": "특정 평가 그룹의 응답 결과를 조회합니다",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "appraisal_id": {
+            "type": "number",
+            "description": "평가 ID"
+          },
+          "group_id": {
+            "type": "number",
+            "description": "그룹 ID"
+          }
+        },
+        "required": ["appraisal_id", "group_id"]
       }
     }
   ],
@@ -231,8 +256,7 @@ Content-Type: application/json
 
 **요청 헤더**:
 ```
-Authorization: Bearer tlx_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-Cookie: TTID=your_jwt_token
+Cookie: TTID=eyJraWQiOiI2Mzg1ZWRhYy05NTAwLTQwYzAtOTQzNy04YThlYmRkNWY1NWYi...
 Content-Type: application/json
 ```
 
@@ -243,7 +267,8 @@ Content-Type: application/json
   "arguments": {
     "page": 1,
     "size": 10,
-    "status": "pending"
+    "status": "pending",
+    "name": "2022"
   }
 }
 ```
@@ -270,8 +295,7 @@ Content-Type: application/json
 
 **요청 헤더**:
 ```
-Authorization: Bearer tlx_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-Cookie: TTID=your_jwt_token (선택사항)
+Cookie: TTID=eyJraWQiOiI2Mzg1ZWRhYy05NTAwLTQwYzAtOTQzNy04YThlYmRkNWY1NWYi...
 ```
 
 **응답**:
@@ -302,8 +326,7 @@ Cookie: TTID=your_jwt_token (선택사항)
 
 **요청 헤더**:
 ```
-Authorization: Bearer tlx_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-Cookie: TTID=your_jwt_token (선택사항)
+Cookie: TTID=eyJraWQiOiI2Mzg1ZWRhYy05NTAwLTQwYzAtOTQzNy04YThlYmRkNWY1NWYi... (선택사항)
 ```
 
 **응답**:
@@ -316,43 +339,43 @@ Cookie: TTID=your_jwt_token (선택사항)
 
 ---
 
-### 8. API 키 생성 (테스트용)
+### 8. 사용자 정보 조회
 
-#### `POST /auth/api-key/generate`
+#### `GET /auth/user-info`
 
-**설명**: 테스트용 API 키를 생성합니다. (실제로 저장되지 않음)
+**설명**: TTID에서 사용자 정보를 추출합니다.
 
-**요청 본문**: 없음
+**요청 헤더**:
+```
+Cookie: TTID=eyJraWQiOiI2Mzg1ZWRhYy05NTAwLTQwYzAtOTQzNy04YThlYmRkNWY1NWYi...
+```
 
 **응답**:
 ```json
 {
-  "apiKey": "tlx_0123456789abcdef0123456789abcdef",
-  "keyId": "uuid-v4",
-  "message": "API key generated. Note: Keys are not stored server-side. Use any valid format key for authentication."
+  "userId": "eyJraWQiOiI2Mzg1ZWRh",
+  "accountId": "1EEBD06B05E411EFB11C0A31B96280A2",
+  "loginId": "yj@perpl.io",
+  "issuer": "localhost",
+  "expiresAt": "2024-01-15T10:30:00.000Z",
+  "authenticated": true
 }
 ```
 
 ---
 
-### 9. API 키 검증
+### 9. 인증 상태 확인
 
-#### `POST /auth/api-key/validate`
+#### `GET /auth/status`
 
-**설명**: API 키 형식을 검증합니다.
-
-**요청 본문**:
-```json
-{
-  "apiKey": "tlx_0123456789abcdef0123456789abcdef"
-}
-```
+**설명**: 현재 인증 상태를 확인합니다.
 
 **응답**:
 ```json
 {
-  "valid": true,
-  "message": "Valid API key format"
+  "authenticated": true,
+  "authMethod": "TTID Cookie",
+  "message": "Authenticated via TTID cookie"
 }
 ```
 
@@ -376,7 +399,7 @@ Cookie: TTID=your_jwt_token (선택사항)
 ### 주요 에러 코드
 
 - `400 Bad Request`: 잘못된 요청 형식
-- `401 Unauthorized`: 인증 실패
+- `401 Unauthorized`: TTID 쿠키 없음 또는 만료
 - `403 Forbidden`: 권한 없음
 - `404 Not Found`: 리소스를 찾을 수 없음
 - `429 Too Many Requests`: Rate limit 초과
@@ -434,12 +457,11 @@ Rate limit 초과시 `429 Too Many Requests` 응답과 함께 `Retry-After` 헤�
 const response = await fetch('http://localhost:1111/api/v1/process', {
   method: 'POST',
   headers: {
-    'Authorization': 'Bearer tlx_your_api_key',
-    'Cookie': 'TTID=your_jwt_token',
+    'Cookie': 'TTID=eyJraWQiOiI2Mzg1ZWRhYy09NTAwLTQwYzAtOTQzNy04YThlYmRkNWY1NWYi...',
     'Content-Type': 'application/json'
   },
   body: JSON.stringify({
-    prompt: '현재 진행 중인 평가 목록을 보여주고 요약해줘'
+    prompt: '2022년 평가 목록을 보여주고 요약해줘'
   })
 });
 
@@ -455,8 +477,7 @@ console.log(data.llmResponse.choices[0].message.content);
 const response = await fetch('http://localhost:1111/api/v1/mcp/tools/call', {
   method: 'POST',
   headers: {
-    'Authorization': 'Bearer tlx_your_api_key',
-    'Cookie': 'TTID=your_jwt_token',
+    'Cookie': 'TTID=eyJraWQiOiI2Mzg1ZWRhYy05NTAwLTQwYzAtOTQzNy04YThlYmRkNWY1NWYi...',
     'Content-Type': 'application/json'
   },
   body: JSON.stringify({
@@ -464,7 +485,7 @@ const response = await fetch('http://localhost:1111/api/v1/mcp/tools/call', {
     arguments: {
       page: 1,
       size: 5,
-      status: 'in_progress'
+      name: '2022'
     }
   })
 });
@@ -480,8 +501,7 @@ console.log(appraisals);
 const response = await fetch('http://localhost:1111/api/v1/process', {
   method: 'POST',
   headers: {
-    'Authorization': 'Bearer tlx_your_api_key',
-    'Cookie': 'TTID=your_jwt_token',
+    'Cookie': 'TTID=eyJraWQiOiI2Mzg1ZWRhYy05NTAwLTQwYzAtOTQzNy04YThlYmRkNWY1NWYi...',
     'Content-Type': 'application/json'
   },
   body: JSON.stringify({
@@ -515,3 +535,28 @@ while (true) {
   }
 }
 ```
+
+---
+
+## TTID 토큰 구조
+
+TTID는 JWT 토큰으로 다음과 같은 페이로드를 포함합니다:
+
+```json
+{
+  "sub": "1EEBD06B05E411EFB11C0A31B96280A2",
+  "aud": "localhost",
+  "accountId": "1EEBD06B05E411EFB11C0A31B96280A2",
+  "nbf": 1755010742,
+  "loginId": "yj@perpl.io",
+  "iss": "localhost",
+  "exp": 1755011642,
+  "iat": 1755010742
+}
+```
+
+- `sub`: 사용자 ID
+- `accountId`: 계정 ID
+- `loginId`: 로그인 이메일
+- `exp`: 토큰 만료 시간 (Unix timestamp)
+- `iss`: 토큰 발급자
