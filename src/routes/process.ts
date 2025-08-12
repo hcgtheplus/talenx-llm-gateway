@@ -8,7 +8,7 @@ import { logger } from '../utils/logger';
 
 const router = Router();
 
-// 통합 처리 엔드포인트 - 클라이언트의 토큰을 재활용
+// 통합 처리 엔드포인트 - LLM이 프롬프트를 분석하여 MCP 도구 자동 선택
 router.post(
   '/process',
   authenticate,
@@ -16,7 +16,6 @@ router.post(
   validate([
     { field: 'prompt', required: true, type: 'string' as const, min: 1 },
     { field: 'model', required: false, type: 'string' as const },
-    { field: 'mcpTools', required: false, type: 'array' as const },
     { field: 'temperature', required: false, type: 'number' as const, min: 0, max: 2 },
     { field: 'maxTokens', required: false, type: 'number' as const, min: 1, max: 4096 },
     { field: 'stream', required: false, type: 'boolean' as const },
@@ -25,7 +24,6 @@ router.post(
     const { 
       prompt, 
       model, 
-      mcpTools, 
       temperature, 
       maxTokens, 
       stream 
@@ -37,17 +35,17 @@ router.post(
     logger.info('Processing integrated request', {
       userId: req.user?.id,
       hasTTID: !!ttid,
-      mcpTools: mcpTools?.length || 0,
+      promptLength: prompt.length,
       stream,
     });
 
     const processRequest = {
       prompt,
       model,
-      mcpTools,
       temperature,
       maxTokens,
       ttid,
+      stream,
     };
 
     if (stream) {
@@ -75,7 +73,7 @@ router.post(
   })
 );
 
-// 간단한 프롬프트 처리 (MCP 없이, OpenAI only)
+// 간단한 프롬프트 처리 (MCP 도구 없이 OpenAI만 사용)
 router.post(
   '/prompt',
   authenticate,
@@ -87,10 +85,11 @@ router.post(
   asyncHandler(async (req: AuthRequest, res: Response) => {
     const { prompt, model } = req.body;
 
+    // TTID 없이 처리 (순수 LLM만 사용)
     const response = await orchestrator.process({
       prompt,
       model,
-      mcpTools: [], // MCP 도구 사용 안함
+      ttid: undefined, // MCP 도구 사용 안함
     });
 
     res.json({

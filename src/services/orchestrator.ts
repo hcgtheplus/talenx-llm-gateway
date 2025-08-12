@@ -1,32 +1,31 @@
 import { llmService, LLMMessage } from './llm';
 import { mcpClient } from './mcp/client';
-import { redisClient } from '../utils/redis';
 import { logger } from '../utils/logger';
 import { AppError } from '../middleware/errorHandler';
 
 export interface ProcessRequest {
   prompt: string;
   model?: string;
-  mcpTools?: string[];
   temperature?: number;
   maxTokens?: number;
   ttid?: string;  // TTID for MCP authentication
+  stream?: boolean;
 }
 
 export interface ProcessResponse {
   llmResponse: any;
   mcpData?: any;
-  context?: any;
+  toolsUsed?: string[];
   timestamp: string;
 }
 
 export class Orchestrator {
   /**
-   * 통합 처리 플로우
-   * 1. 클라이언트 토큰으로 MCP 인증
-   * 2. MCP 도구로 필요한 데이터 수집
-   * 3. 수집된 데이터와 함께 LLM 프롬프트 실행
-   * 4. 통합 응답 반환
+   * 메인 처리 플로우
+   * 1. MCP 도구 목록 가져오기
+   * 2. LLM에게 프롬프트와 도구 정보 전달하여 분석
+   * 3. LLM이 선택한 도구 실행
+   * 4. 도구 결과를 포함하여 최종 응답 생성
    */
   async process(request: ProcessRequest): Promise<ProcessResponse> {
     const startTime = Date.now();
@@ -34,72 +33,113 @@ export class Orchestrator {
     try {
       logger.info('Processing integrated request', {
         hasTTID: !!request.ttid,
-        mcpTools: request.mcpTools,
+        promptLength: request.prompt.length,
       });
 
-      // 1. MCP 데이터 수집 (TTID 사용)
+      let toolsUsed: string[] = [];
       let mcpData: any = null;
-      let enrichedPrompt = request.prompt;
 
-      if (request.mcpTools && request.mcpTools.length > 0) {
-        logger.info('Fetching MCP data', {
-          hasTTID: !!request.ttid
-        });
-        
-        // MCP 도구 실행 (TTID 전달)
-        mcpData = await this.executeMCPTools(request.mcpTools, request.ttid);
-        
-        // 프롬프트에 MCP 데이터 추가
-        enrichedPrompt = this.enrichPrompt(request.prompt, mcpData);
+      // 1. MCP 도구 목록 가져오기 (TTID가 있을 때만)
+      let availableTools: any[] = [];
+      if (request.ttid) {
+        try {
+          availableTools = await mcpClient.listTools(request.ttid);
+          logger.info(`Found ${availableTools.length} MCP tools available`);
+        } catch (error) {
+          logger.warn('Failed to fetch MCP tools, continuing without tools:', error);
+        }
       }
 
-      // 2. LLM 프롬프트 실행
-      const llmProvider = 'openai'; // OpenAI only
-      const llmModel = request.model || this.getDefaultModel();
-      
-      const messages: LLMMessage[] = [
+      // 2. LLM에게 도구 선택 및 실행 요청
+      const toolSelectionMessages: LLMMessage[] = [
         {
           role: 'system',
-          content: 'You are a helpful assistant with access to real-time data.'
+          content: this.buildSystemPrompt(availableTools)
         },
         {
           role: 'user',
-          content: enrichedPrompt
+          content: request.prompt
         }
       ];
 
-      logger.info('Executing LLM prompt', { 
-        provider: llmProvider,
-        model: llmModel,
-        promptLength: enrichedPrompt.length 
+      // 첫 번째 LLM 호출: 도구 선택 및 파라미터 결정
+      const toolDecision = await llmService.chat('openai', {
+        model: 'gpt-3.5-turbo',
+        messages: toolSelectionMessages,
+        temperature: 0.1, // 낮은 temperature로 일관된 도구 선택
+        maxTokens: 500,
       });
 
-      const llmResponse = await llmService.chat(llmProvider, {
-        model: llmModel,
-        messages,
+      // 3. LLM 응답에서 도구 호출 추출 및 실행
+      const toolCalls = this.extractToolCalls(toolDecision.choices[0].message.content);
+      
+      if (toolCalls.length > 0 && request.ttid) {
+        logger.info(`Executing ${toolCalls.length} tool calls`);
+        mcpData = {};
+        
+        for (const toolCall of toolCalls) {
+          try {
+            logger.info(`Calling tool: ${toolCall.name}`, toolCall.arguments);
+            const result = await mcpClient.callTool(
+              {
+                name: toolCall.name,
+                arguments: toolCall.arguments,
+              },
+              request.ttid
+            );
+            
+            mcpData[toolCall.name] = result;
+            toolsUsed.push(toolCall.name);
+          } catch (error: any) {
+            logger.error(`Tool call failed for ${toolCall.name}:`, error);
+            mcpData[toolCall.name] = { error: error.message };
+          }
+        }
+      }
+
+      // 4. 도구 실행 결과를 포함하여 최종 응답 생성
+      const finalMessages: LLMMessage[] = [
+        {
+          role: 'system',
+          content: 'You are a helpful assistant. Use the provided data to answer the user\'s question comprehensively.'
+        },
+        {
+          role: 'user',
+          content: request.prompt
+        }
+      ];
+
+      // 도구 실행 결과가 있으면 추가
+      if (mcpData && Object.keys(mcpData).length > 0) {
+        finalMessages.push({
+          role: 'assistant',
+          content: `I've retrieved the following data:\n${JSON.stringify(mcpData, null, 2)}`
+        });
+        finalMessages.push({
+          role: 'user',
+          content: 'Based on this data, please provide a comprehensive answer to my original question.'
+        });
+      }
+
+      // 최종 응답 생성
+      const finalResponse = await llmService.chat('openai', {
+        model: request.model || 'gpt-3.5-turbo',
+        messages: finalMessages,
         temperature: request.temperature || 0.7,
         maxTokens: request.maxTokens || 1000,
+        stream: request.stream,
       });
 
-      // 3. 컨텍스트 저장 (선택사항)
-      const contextKey = `context:${Date.now()}`;
-      await redisClient.setCache(contextKey, {
-        request,
-        mcpData,
-        llmResponse,
-      }, 3600); // 1시간 보관
-
       const duration = Date.now() - startTime;
-      logger.info('Request processed successfully', { duration });
+      logger.info('Request processed successfully', { 
+        duration,
+        toolsUsed: toolsUsed.length 
+      });
 
       return {
-        llmResponse,
+        llmResponse: finalResponse,
         mcpData,
-        context: {
-          contextId: contextKey,
-          processingTime: duration,
-          toolsUsed: request.mcpTools,
-        },
+        toolsUsed,
         timestamp: new Date().toISOString(),
       };
     } catch (error: any) {
@@ -112,111 +152,155 @@ export class Orchestrator {
   }
 
   /**
-   * MCP 도구 실행
+   * 시스템 프롬프트 생성 - 사용 가능한 도구 정보 포함
    */
-  private async executeMCPTools(tools: string[], ttid?: string): Promise<any> {
-    const results: Record<string, any> = {};
+  private buildSystemPrompt(tools: any[]): string {
+    if (tools.length === 0) {
+      return 'You are a helpful assistant. Answer the user\'s question to the best of your ability.';
+    }
+
+    const toolDescriptions = tools.map(tool => 
+      `- ${tool.name}: ${tool.description}\n  Parameters: ${JSON.stringify(tool.inputSchema?.properties || {})}`
+    ).join('\n');
+
+    return `You are an AI assistant with access to the following tools:
+
+${toolDescriptions}
+
+When the user asks a question that would benefit from using these tools, respond with tool calls in the following format:
+[TOOL_CALL: tool_name]
+{
+  "argument1": "value1",
+  "argument2": "value2"
+}
+[/TOOL_CALL]
+
+You can call multiple tools if needed. Only call tools when they would help answer the user's question.
+If the question doesn't require tools, just answer directly.`;
+  }
+
+  /**
+   * LLM 응답에서 도구 호출 추출
+   */
+  private extractToolCalls(content: string): Array<{ name: string; arguments: any }> {
+    const toolCalls: Array<{ name: string; arguments: any }> = [];
+    const regex = /\[TOOL_CALL:\s*(\w+)\]\s*(\{[\s\S]*?\})\s*\[\/TOOL_CALL\]/g;
     
-    for (const toolName of tools) {
+    let match;
+    while ((match = regex.exec(content)) !== null) {
       try {
-        logger.info(`Executing MCP tool: ${toolName}`);
-        
-        let result;
-        switch (toolName) {
-          case 'get_appraisals':
-            result = await mcpClient.getAppraisals({}, ttid);
-            break;
-          
-          case 'get_response_results':
-            // 기본값 사용, 실제로는 파라미터 전달 필요
-            result = await mcpClient.getResponseResults(1, 1, {}, ttid);
-            break;
-          
-          default:
-            // 일반 도구 호출
-            result = await mcpClient.callTool({ name: toolName }, ttid);
-        }
-        
-        results[toolName] = result;
-      } catch (error: any) {
-        logger.error(`Failed to execute MCP tool ${toolName}:`, error);
-        results[toolName] = { error: error.message };
+        const name = match[1];
+        const arguments_ = JSON.parse(match[2]);
+        toolCalls.push({ name, arguments: arguments_ });
+      } catch (error) {
+        logger.error('Failed to parse tool call:', error);
       }
     }
     
-    return results;
+    return toolCalls;
   }
 
   /**
-   * MCP 데이터로 프롬프트 강화
-   */
-  private enrichPrompt(originalPrompt: string, mcpData: any): string {
-    if (!mcpData || Object.keys(mcpData).length === 0) {
-      return originalPrompt;
-    }
-
-    let enrichedPrompt = originalPrompt + '\n\n=== Available Data ===\n';
-    
-    for (const [tool, data] of Object.entries(mcpData)) {
-      if (data && typeof data === 'object' && !('error' in data)) {
-        enrichedPrompt += `\n[${tool} Results]:\n${JSON.stringify(data, null, 2)}\n`;
-      }
-    }
-    
-    enrichedPrompt += '\n=== End of Data ===\n\nPlease use the above data to answer the question.';
-    
-    return enrichedPrompt;
-  }
-
-  /**
-   * 기본 모델 선택 (OpenAI only)
-   */
-  private getDefaultModel(): string {
-    return 'gpt-3.5-turbo';
-  }
-
-  /**
-   * 스트리밍 처리 (선택사항)
+   * 스트리밍 처리
    */
   async *processStream(request: ProcessRequest): AsyncGenerator<string, void, unknown> {
-    // MCP 데이터 먼저 수집
-    let mcpData: any = null;
-    let enrichedPrompt = request.prompt;
+    try {
+      // 도구 실행은 스트리밍 전에 완료
+      let availableTools: any[] = [];
+      let mcpData: any = null;
+      let toolsUsed: string[] = [];
 
-    if (request.mcpTools && request.mcpTools.length > 0) {
-      mcpData = await this.executeMCPTools(request.mcpTools, request.ttid);
-      enrichedPrompt = this.enrichPrompt(request.prompt, mcpData);
-      
-      // MCP 데이터를 먼저 스트리밍
-      yield `data: ${JSON.stringify({ type: 'mcp_data', data: mcpData })}\n\n`;
-    }
+      if (request.ttid) {
+        try {
+          availableTools = await mcpClient.listTools(request.ttid);
+          
+          // 도구 선택 및 실행
+          const toolSelectionMessages: LLMMessage[] = [
+            {
+              role: 'system',
+              content: this.buildSystemPrompt(availableTools)
+            },
+            {
+              role: 'user',
+              content: request.prompt
+            }
+          ];
 
-    // LLM 응답 스트리밍
-    const llmProvider = 'openai'; // OpenAI only
-    const llmModel = request.model || this.getDefaultModel();
-    
-    const messages: LLMMessage[] = [
-      {
-        role: 'system',
-        content: 'You are a helpful assistant with access to real-time data.'
-      },
-      {
-        role: 'user',
-        content: enrichedPrompt
+          const toolDecision = await llmService.chat('openai', {
+            model: 'gpt-3.5-turbo',
+            messages: toolSelectionMessages,
+            temperature: 0.1,
+            maxTokens: 500,
+          });
+
+          const toolCalls = this.extractToolCalls(toolDecision.choices[0].message.content);
+          
+          if (toolCalls.length > 0) {
+            mcpData = {};
+            for (const toolCall of toolCalls) {
+              try {
+                const result = await mcpClient.callTool(
+                  {
+                    name: toolCall.name,
+                    arguments: toolCall.arguments,
+                  },
+                  request.ttid
+                );
+                mcpData[toolCall.name] = result;
+                toolsUsed.push(toolCall.name);
+              } catch (error: any) {
+                mcpData[toolCall.name] = { error: error.message };
+              }
+            }
+            
+            // 도구 실행 결과 먼저 스트리밍
+            yield `data: ${JSON.stringify({ type: 'tools_used', tools: toolsUsed })}\n\n`;
+            yield `data: ${JSON.stringify({ type: 'mcp_data', data: mcpData })}\n\n`;
+          }
+        } catch (error) {
+          logger.warn('Failed to use MCP tools in stream:', error);
+        }
       }
-    ];
 
-    for await (const chunk of llmService.streamChat(llmProvider, {
-      model: llmModel,
-      messages,
-      temperature: request.temperature || 0.7,
-      maxTokens: request.maxTokens || 1000,
-      stream: true,
-    })) {
-      yield `data: ${JSON.stringify({ type: 'llm_chunk', content: chunk })}\n\n`;
+      // 최종 응답 스트리밍
+      const finalMessages: LLMMessage[] = [
+        {
+          role: 'system',
+          content: 'You are a helpful assistant. Use the provided data to answer the user\'s question comprehensively.'
+        },
+        {
+          role: 'user',
+          content: request.prompt
+        }
+      ];
+
+      if (mcpData && Object.keys(mcpData).length > 0) {
+        finalMessages.push({
+          role: 'assistant',
+          content: `I've retrieved the following data:\n${JSON.stringify(mcpData, null, 2)}`
+        });
+        finalMessages.push({
+          role: 'user',
+          content: 'Based on this data, please provide a comprehensive answer to my original question.'
+        });
+      }
+
+      // LLM 응답 스트리밍
+      for await (const chunk of llmService.streamChat('openai', {
+        model: request.model || 'gpt-3.5-turbo',
+        messages: finalMessages,
+        temperature: request.temperature || 0.7,
+        maxTokens: request.maxTokens || 1000,
+        stream: true,
+      })) {
+        yield `data: ${JSON.stringify({ type: 'llm_chunk', content: chunk })}\n\n`;
+      }
+      
+      yield 'data: [DONE]\n\n';
+    } catch (error: any) {
+      logger.error('Stream processing error:', error);
+      yield `data: ${JSON.stringify({ type: 'error', error: error.message })}\n\n`;
     }
-    
-    yield 'data: [DONE]\n\n';
   }
 }
 

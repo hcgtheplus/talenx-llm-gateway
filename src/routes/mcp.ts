@@ -8,7 +8,7 @@ import { Response } from 'express';
 
 const router = Router();
 
-// List available MCP tools
+// List available MCP tools - MCP 서버에서 사용 가능한 도구 목록 반환
 router.get(
   '/tools',
   authenticate,
@@ -20,7 +20,7 @@ router.get(
   })
 );
 
-// Call an MCP tool
+// Call an MCP tool directly - 특정 MCP 도구를 직접 실행
 router.post(
   '/tools/call',
   authenticate,
@@ -42,72 +42,6 @@ router.post(
     );
     
     res.json(result);
-  })
-);
-
-// Get appraisals
-router.get(
-  '/appraisals',
-  authenticate,
-  standardRateLimiter,
-  asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { page, size, status, name } = req.query;
-    const ttid = req.user?.ttid;
-    
-    const appraisals = await mcpClient.getAppraisals(
-      {
-        page: page ? parseInt(page as string, 10) : undefined,
-        size: size ? parseInt(size as string, 10) : undefined,
-        status: status as string,
-        name: name as string,
-      },
-      ttid
-    );
-    
-    res.json(appraisals);
-  })
-);
-
-// Get response results for a specific appraisal group
-router.get(
-  '/appraisals/:appraisalId/groups/:groupId/responses',
-  authenticate,
-  standardRateLimiter,
-  asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { appraisalId, groupId } = req.params;
-    const { page, size } = req.query;
-    const ttid = req.user?.ttid;
-    
-    const responses = await mcpClient.getResponseResults(
-      parseInt(appraisalId, 10),
-      parseInt(groupId, 10),
-      {
-        page: page ? parseInt(page as string, 10) : undefined,
-        size: size ? parseInt(size as string, 10) : undefined,
-      },
-      ttid
-    );
-    
-    res.json(responses);
-  })
-);
-
-// Validate workspace access
-router.post(
-  '/workspace/validate',
-  authenticate,
-  validate([
-    { field: 'workspaceHash', required: true, type: 'string' as const },
-  ]),
-  asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { workspaceHash } = req.body;
-    
-    const isValid = await mcpClient.validateWorkspace(workspaceHash);
-    
-    res.json({
-      valid: isValid,
-      workspaceHash: isValid ? workspaceHash : null,
-    });
   })
 );
 
