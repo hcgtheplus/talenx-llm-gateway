@@ -1,0 +1,49 @@
+version: "3.8"
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: talenx-redis
+    ports:
+      - "3333:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - talenx-network
+
+  llm-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: talenx-llm-gateway
+    ports:
+      - "1111:1111"
+    environment:
+      - NODE_ENV=production
+      - PORT=1111
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - LOG_LEVEL=info
+    env_file:
+      - .env
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - talenx-network
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+
+networks:
+  talenx-network:
+    driver: bridge

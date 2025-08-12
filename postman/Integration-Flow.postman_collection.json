@@ -1,0 +1,436 @@
+{
+  "info": {
+    "name": "LLM Gateway - 통합 플로우",
+    "description": "클라이언트 토큰 재활용 통합 처리 플로우\n\n플로우:\n1. 클라이언트가 프롬프트와 토큰 전송\n2. Gateway가 토큰으로 MCP 데이터 수집\n3. 수집된 데이터와 함께 LLM 처리\n4. 통합 응답 반환",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:1111",
+      "type": "string"
+    },
+    {
+      "key": "gatewayApiKey",
+      "value": "",
+      "type": "string",
+      "description": "Gateway 인증용 API Key (tlx_)"
+    },
+    {
+      "key": "clientToken",
+      "value": "",
+      "type": "string",
+      "description": "클라이언트 Bearer 토큰 (MCP 인증용)"
+    },
+    {
+      "key": "contextId",
+      "value": "",
+      "type": "string",
+      "description": "저장된 컨텍스트 ID"
+    }
+  ],
+  "item": [
+    {
+      "name": "🔐 Step 1: 준비",
+      "item": [
+        {
+          "name": "Gateway API Key 생성",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"API Key 생성 성공\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "if (response.apiKey) {",
+                  "    pm.collectionVariables.set(\"gatewayApiKey\", response.apiKey);",
+                  "    console.log(\"✅ Gateway API Key 저장: \" + response.apiKey);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/api-key/generate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "api-key", "generate"]
+            },
+            "description": "Gateway 접근용 API Key 생성"
+          }
+        },
+        {
+          "name": "클라이언트 토큰 설정",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// 실제 클라이언트 토큰으로 교체 필요",
+                  "// 예: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+                  "const clientToken = \"eyJraWQiOiI2Mzg1ZWRhYy05NTAwLTQwYzAtOTQzNy04YThlYmRkNWY1NWYiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIxRUVCRDA2QjA1RTQxMUVGQjExQzBBMzFCOTYyODBBMiIsImF1ZCI6ImxvY2FsaG9zdCIsImFjY291bnRJZCI6IjFFRUJEMDZCMDVFNDExRUZCMTFDMEEzMUI5NjI4MEEyIiwibmJmIjoxNzU0ODc4NDQ2LCJsb2dpbklkIjoieWpAcGVycGwuaW8iLCJpc3MiOiJsb2NhbGhvc3QiLCJleHAiOjE3NTQ4NzkzNDYsImlhdCI6MTc1NDg3ODQ0Nn0.hl6NuG5TqiyMF_pvUb0NlpDk3PbbDwbSzoPXunRzBZX3D67ShS4P143GBMnXN1dW1m03-fPhSrUd30fGk2YMjzHv88mxi4iMEX4OOIKYhAwi902WK3dTFSwjjwA-ZKpOjg4KtsP9PhD30jXeb_uy7pzYuXavGM04Gto67Q8n55hPfB9nJLfrcz46Ith3GYcbDdXv0vno8GyUwmAYbZLCKkgM8QfmBZ1IeqmrCLvKhGTQc9QVvyemN8vM1tySE4awACiEXmcTX7EC6MqHvtKn1pq1mOld4WKZOwBUWUr9uIrccdxJ6L_pbW2Lq6hK6HIxcYiU6ZSkn9xgA4_feMl6_g\";",
+                  "",
+                  "pm.collectionVariables.set(\"clientToken\", clientToken);",
+                  "console.log(\"📌 클라이언트 토큰 설정 완료\");"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "클라이언트 토큰을 변수에 설정\n\n⚠️ 실제 클라이언트의 Bearer 토큰으로 교체 필요"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔄 Step 2: 통합 처리",
+      "item": [
+        {
+          "name": "✨ 통합 요청 (MCP + LLM)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"통합 처리 성공\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "",
+                  "if (response.context && response.context.contextId) {",
+                  "    pm.collectionVariables.set(\"contextId\", response.context.contextId);",
+                  "    console.log(\"📝 컨텍스트 ID 저장: \" + response.context.contextId);",
+                  "}",
+                  "",
+                  "console.log(\"\\n=== 통합 응답 ===\\n\");",
+                  "",
+                  "if (response.mcpData) {",
+                  "    console.log(\"📊 MCP 데이터:\");",
+                  "    console.log(JSON.stringify(response.mcpData, null, 2));",
+                  "}",
+                  "",
+                  "if (response.llmResponse && response.llmResponse.choices) {",
+                  "    console.log(\"\\n🤖 LLM 응답:\");",
+                  "    console.log(response.llmResponse.choices[0].message.content);",
+                  "}",
+                  "",
+                  "if (response.context) {",
+                  "    console.log(\"\\n⏱️ 처리 시간: \" + response.context.processingTime + \"ms\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{gatewayApiKey}}",
+                "description": "Gateway 인증"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientToken}}",
+                "description": "클라이언트 토큰 (MCP용)"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"평가 데이터를 가져와서 분석해주세요. 전체 평가 수와 상태별 분포를 알려주세요.\",\n  \"mcpTools\": [\"get_appraisals\"],\n  \"provider\": \"openai\",\n  \"model\": \"gpt-3.5-turbo\",\n  \"temperature\": 0.7,\n  \"maxTokens\": 500\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/process",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "process"]
+            },
+            "description": "MCP 도구로 데이터 수집 + LLM 분석을 한번에 처리"
+          }
+        },
+        {
+          "name": "📊 복수 MCP 도구 사용",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{gatewayApiKey}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"평가 목록과 응답 결과를 모두 분석해서 종합 리포트를 작성해주세요.\",\n  \"mcpTools\": [\"get_appraisals\", \"get_response_results\"],\n  \"provider\": \"openai\",\n  \"model\": \"gpt-3.5-turbo\",\n  \"temperature\": 0.5,\n  \"maxTokens\": 1000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/process",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "process"]
+            },
+            "description": "여러 MCP 도구를 동시에 사용하여 데이터 수집"
+          }
+        },
+        {
+          "name": "💬 단순 프롬프트 (MCP 없이)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{gatewayApiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"API Gateway의 장점을 3가지 알려주세요.\",\n  \"provider\": \"openai\",\n  \"model\": \"gpt-3.5-turbo\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/prompt",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "prompt"]
+            },
+            "description": "MCP 없이 LLM만 사용하는 간단한 요청"
+          }
+        },
+        {
+          "name": "📡 스트리밍 통합 요청",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{gatewayApiKey}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"평가 데이터를 실시간으로 분석해주세요.\",\n  \"mcpTools\": [\"get_appraisals\"],\n  \"provider\": \"openai\",\n  \"model\": \"gpt-3.5-turbo\",\n  \"stream\": true,\n  \"temperature\": 0.7\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/process",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "process"]
+            },
+            "description": "Server-Sent Events로 스트리밍 응답\n\n⚠️ Postman에서는 전체 스트림 완료 후 표시"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔍 Step 3: 조회",
+      "item": [
+        {
+          "name": "사용 가능한 MCP 도구",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "",
+                  "if (response.tools && response.tools.length > 0) {",
+                  "    console.log(\"📋 사용 가능한 MCP 도구:\");",
+                  "    response.tools.forEach(tool => {",
+                  "        console.log(`  - ${tool.name}: ${tool.description}`);",
+                  "    });",
+                  "} else if (response.authenticated === false) {",
+                  "    console.log(\"❌ MCP 인증 실패: 클라이언트 토큰이 유효하지 않음\");",
+                  "} else {",
+                  "    console.log(\"⚠️ 사용 가능한 MCP 도구가 없음\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{gatewayApiKey}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientToken}}",
+                "description": "클라이언트 토큰으로 MCP 인증"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/available-tools",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "available-tools"]
+            },
+            "description": "클라이언트 토큰으로 사용 가능한 MCP 도구 조회"
+          }
+        },
+        {
+          "name": "컨텍스트 조회",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const context = pm.response.json();",
+                  "    console.log(\"📦 저장된 컨텍스트:\");",
+                  "    console.log(\"  - 요청:\", context.request?.prompt?.substring(0, 50) + \"...\");",
+                  "    console.log(\"  - MCP 도구:\", context.request?.mcpTools);",
+                  "    console.log(\"  - 응답 길이:\", context.llmResponse?.choices?.[0]?.message?.content?.length);",
+                  "} else {",
+                  "    console.log(\"❌ 컨텍스트를 찾을 수 없음\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "if (!pm.collectionVariables.get(\"contextId\")) {",
+                  "    console.log(\"⚠️ contextId가 없습니다. 통합 요청을 먼저 실행하세요.\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{gatewayApiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/context/{{contextId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "context", "{{contextId}}"]
+            },
+            "description": "이전 요청의 전체 컨텍스트 조회"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🧪 Step 4: 시나리오 테스트",
+      "item": [
+        {
+          "name": "시나리오: 평가 분석 리포트",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{gatewayApiKey}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"다음 작업을 수행해주세요:\\n1. 전체 평가 목록 요약\\n2. 상태별 분포 분석\\n3. 개선 제안사항 3가지\\n\\n마크다운 형식으로 리포트를 작성해주세요.\",\n  \"mcpTools\": [\"get_appraisals\"],\n  \"provider\": \"openai\",\n  \"model\": \"gpt-3.5-turbo\",\n  \"temperature\": 0.3,\n  \"maxTokens\": 800\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/process",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "process"]
+            },
+            "description": "실제 비즈니스 시나리오: 평가 데이터 기반 분석 리포트 생성"
+          }
+        },
+        {
+          "name": "시나리오: 특정 질문 답변",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{gatewayApiKey}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"현재 진행 중인 평가는 몇 개이고, 완료된 평가는 몇 개인가요? 간단히 답해주세요.\",\n  \"mcpTools\": [\"get_appraisals\"],\n  \"provider\": \"openai\",\n  \"model\": \"gpt-3.5-turbo\",\n  \"temperature\": 0,\n  \"maxTokens\": 100\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/process",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "process"]
+            },
+            "description": "데이터 기반 특정 질문에 대한 답변"
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "console.log('🔄 통합 플로우 시작');",
+          "console.log('  Gateway 포트: 1111');",
+          "console.log('  MCP 포트: 9999');",
+          "console.log('  Redis 포트: 3333');"
+        ]
+      }
+    }
+  ]
+}
