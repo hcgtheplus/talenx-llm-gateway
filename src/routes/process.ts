@@ -134,23 +134,5 @@ router.get(
   })
 );
 
-// 컨텍스트 조회
-router.get(
-  '/context/:contextId',
-  authenticate,
-  asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { contextId } = req.params;
-    const { redisClient } = await import('../utils/redis');
-    
-    const context = await redisClient.getCache(contextId);
-    
-    if (!context) {
-      res.status(404).json({ error: 'Context not found or expired' });
-      return;
-    }
-    
-    res.json(context);
-  })
-);
 
 export default router;

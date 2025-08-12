@@ -1,30 +1,42 @@
-# Talenx LLM 게이트웨이
+# Talenx LLM Gateway
 
-OpenAI 모델과 MCP(Model Context Protocol) 서버를 매끄럽게 통합하는 경량 프로덕션 준비 API 게이트웨이입니다. 자동 API 키 등록과 지능형 캐싱으로 최적의 성능을 제공합니다.
+프롬프트 기반 자동 MCP 도구 선택을 지원하는 OpenAI LLM 게이트웨이
 
-## 🚀 주요 기능
+## 개요
 
-- **유연한 인증** - API 키, TTID 쿠키, Bearer 토큰 지원
-- **OpenAI 통합** - GPT-3.5, GPT-4 및 기타 OpenAI 모델 지원
-- **MCP 통합** - TTID 쿠키를 통한 MCP 서버 연결
-- **인증 패스스루** - 클라이언트 인증 정보를 MCP 서버에 직접 전달
-- **스마트 캐싱** - 응답 시간 개선을 위한 Redis 기반 캐싱
-- **요청 제한** - API 남용 방지를 위한 내장 보호 기능
-- **사용량 추적** - 과금 및 분석을 위한 토큰 사용량 모니터링
+Talenx LLM Gateway는 OpenAI API와 MCP(Model Context Protocol) 서버를 통합하여 프롬프트를 분석하고 자동으로 적절한 도구를 선택하여 실행하는 지능형 API 게이트웨이입니다. LLM이 사용자의 요청을 이해하고 필요한 도구를 자동으로 호출하여 더 풍부한 응답을 생성합니다.
 
-## 📋 사전 요구사항
+## 주요 기능
 
-- Node.js 18+
+- **자동 도구 선택**: LLM이 프롬프트를 분석하여 MCP 도구 자동 선택 및 실행
+- **OpenAI 통합**: GPT 모델을 통한 자연어 처리 및 응답 생성
+- **MCP 서버 연동**: 외부 서비스와의 통합을 위한 MCP 프로토콜 지원
+- **TTID 인증**: 쿠키 기반 TTID 토큰을 MCP 서버로 전달
+- **스트리밍 지원**: 실시간 응답 스트리밍
+- **Redis 캐싱**: 성능 최적화를 위한 결과 캐싱
+
+## 아키텍처
+
+```
+Client → API Gateway → LLM (도구 선택) → MCP Server → LLM (최종 응답)
+           ↓
+        Redis Cache
+```
+
+## 시작하기
+
+### 필수 요구사항
+
+- Node.js 18.0 이상
 - Redis 서버
 - OpenAI API 키
+- MCP 서버 (talenx-ssq-mcp)
 
-## 🛠️ 빠른 시작
-
-### 1. 설치
+### 설치
 
 ```bash
-# 저장소 복제
-git clone https://github.com/yourusername/talenx-llm-gateway.git
+# 저장소 클론
+git clone https://github.com/your-org/talenx-llm-gateway.git
 cd talenx-llm-gateway
 
 # 의존성 설치
@@ -32,273 +44,212 @@ npm install
 
 # 환경 변수 설정
 cp .env.example .env
+# .env 파일을 편집하여 필요한 값 설정
 ```
 
-### 2. 설정
-
-`.env` 파일을 편집하여 설정을 구성합니다:
+### 환경 변수 설정
 
 ```env
-# 서버
+# 서버 설정
 PORT=1111
-NODE_ENV=development
+NODE_ENV=production
 
-# Redis
+# OpenAI 설정
+OPENAI_API_KEY=your-openai-api-key
+OPENAI_BASE_URL=https://api.openai.com/v1
+OPENAI_DEFAULT_MODEL=gpt-3.5-turbo
+
+# Redis 설정
 REDIS_HOST=localhost
 REDIS_PORT=6379
+REDIS_PASSWORD=
 
-# OpenAI
-OPENAI_API_KEY=sk-your-openai-api-key
-
-# MCP 서버 (선택사항)
+# MCP 서버 설정
 MCP_SERVER_URL=http://localhost:9999
-MCP_WORKSPACE_HASH=your_workspace_hash
+MCP_WORKSPACE_HASH=your-workspace-hash
+
+# 로깅
+LOG_LEVEL=info
 ```
 
-### 3. 서버 시작
+### 실행
 
 ```bash
 # 개발 모드
 npm run dev
 
-# 프로덕션 모드
+# 프로덕션 빌드
 npm run build
+
+# 프로덕션 실행
 npm start
 ```
 
-## 🔑 인증
+## API 사용법
 
-### 1. API 키 인증 (선택사항)
-모든 API 요청에 `X-API-Key` 헤더를 사용할 수 있습니다:
+### 1. 통합 처리 (자동 도구 선택)
 
-```http
-X-API-Key: tlx_0123456789abcdef0123456789abcdef
-```
-
-**형식:** `tlx_` + 32자리 16진수
-
-### 2. TTID 쿠키 인증 (MCP 연동용)
-MCP 서버와 연동할 때 TTID 쿠키를 사용합니다:
-
-```http
-Cookie: TTID=eyJraWQiOiI2Mzg1ZWRhYy05NTAwLTQwYzAtOTQzNy04YThlYmRkNWY1NWYiLCJhbGciOiJSUzI1NiJ9...
-```
-
-### 3. Bearer 토큰 인증 (대체 방법)
-```http
-Authorization: Bearer your_jwt_token_here
-```
-
-> **참고:** 
-> - API 키는 형식만 검증되며 서버에 저장되지 않습니다
-> - MCP 기능을 사용하려면 TTID 쿠키 또는 Bearer 토큰이 필요합니다
-> - TTID는 원본 API 서버의 인증에 사용됩니다
-
-### 예시 요청
+LLM이 프롬프트를 분석하여 필요한 MCP 도구를 자동으로 선택하고 실행합니다.
 
 ```bash
-curl -X GET http://localhost:1111/api/v1/llm/providers \
-  -H "X-API-Key: tlx_0123456789abcdef0123456789abcdef"
+curl -X POST http://localhost:1111/api/v1/process \
+  -H "Authorization: Bearer tlx_your_api_key" \
+  -H "Cookie: TTID=your_ttid_token" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "평가 목록을 보여줘",
+    "model": "gpt-3.5-turbo",
+    "temperature": 0.7
+  }'
 ```
 
-## 📚 핵심 API 엔드포인트
+### 2. 단순 프롬프트 처리 (도구 없이)
 
-### OpenAI 채팅 완성
-
-```http
-POST /api/v1/llm/chat
-```
-
-```json
-{
-  "model": "gpt-3.5-turbo",
-  "messages": [
-    {"role": "user", "content": "안녕하세요!"}
-  ],
-  "temperature": 0.7,
-  "maxTokens": 500,
-  "stream": false
-}
-```
-
-### MCP 도구 실행
-
-```http
-POST /api/v1/mcp/tools/call
-```
-
-```json
-{
-  "name": "get_appraisals",
-  "arguments": {
-    "page": 1,
-    "size": 10
-  }
-}
-```
-
-### 통합 처리 (OpenAI + MCP)
-
-```http
-POST /api/v1/process
-```
-
-```json
-{
-  "prompt": "현재 평가를 분석하고 인사이트를 제공해주세요",
-  "model": "gpt-4",
-  "mcpTools": ["get_appraisals"],
-  "temperature": 0.5
-}
-```
-
-## 📁 프로젝트 구조
-
-```
-src/
-├── config/          # 설정 관리
-├── middleware/      
-│   ├── auth.ts      # API 키 인증 및 자동 등록
-│   ├── rateLimiter.ts
-│   └── validation.ts
-├── routes/          
-│   ├── auth.ts      # 인증 엔드포인트
-│   ├── llm.ts       # OpenAI 엔드포인트
-│   ├── mcp.ts       # MCP 엔드포인트
-│   └── process.ts   # 통합 처리
-├── services/        
-│   ├── llm/         # OpenAI 서비스 계층
-│   ├── mcp/         # MCP 클라이언트
-│   └── orchestrator.ts
-└── utils/           
-    ├── logger.ts    # Winston 로거
-    └── redis.ts     # Redis 클라이언트
-```
-
-## 🧪 테스트
+MCP 도구 없이 순수 LLM만 사용하여 응답을 생성합니다.
 
 ```bash
-# 테스트 실행
-npm test
-
-# 타입 체크
-npm run typecheck
-
-# 린트 검사
-npm run lint
+curl -X POST http://localhost:1111/api/v1/prompt \
+  -H "Authorization: Bearer tlx_your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "Node.js란 무엇인가요?",
+    "model": "gpt-3.5-turbo"
+  }'
 ```
 
-## 📊 모니터링
+### 3. 스트리밍 응답
 
-### 헬스 체크
-
-```http
-GET /health
-```
-
-서버 상태, Redis 연결 및 가동 시간을 반환합니다.
-
-### 사용량 통계
-
-```http
-GET /api/v1/llm/usage?days=7
-```
-
-지정된 기간의 토큰 사용량 통계를 반환합니다.
-
-## 🔧 고급 설정
-
-### 요청 제한
-
-`.env`에서 설정:
-
-```env
-RATE_LIMIT_WINDOW_MS=60000  # 1분
-RATE_LIMIT_MAX_REQUESTS=100
-```
-
-### 캐싱
-
-- MCP 도구: 1시간 캐시
-- LLM 응답 (temperature=0): 5분 캐시
-- 평가 데이터: 5분 캐시
-
-### 지원되는 OpenAI 모델
-
-- gpt-4-turbo-preview
-- gpt-4
-- gpt-3.5-turbo
-- gpt-3.5-turbo-16k
-
-## 🐛 문제 해결
-
-### Redis 연결 오류
-
-```bash
-# Redis가 실행 중인지 확인
-redis-cli ping
-
-# .env의 포트가 Redis 설정과 일치하는지 확인
-echo $REDIS_PORT
-```
-
-### 잘못된 API 키 형식
-
-API 키가 다음 패턴을 따르는지 확인: `tlx_[32자리 16진수]`
+실시간으로 응답을 스트리밍 받습니다.
 
 ```javascript
-// 유효한 형식 예시
-const validKey = 'tlx_0123456789abcdef0123456789abcdef';
+const response = await fetch('http://localhost:1111/api/v1/process', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer tlx_your_api_key',
+    'Cookie': 'TTID=your_ttid_token',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    prompt: '평가 결과를 분석해줘',
+    stream: true
+  })
+});
+
+const reader = response.body.getReader();
+// 스트림 처리...
+```
+
+## MCP 도구 통합
+
+게이트웨이는 MCP 서버의 도구를 자동으로 감지하고 사용합니다:
+
+1. 사용 가능한 도구 목록 조회
+2. LLM이 프롬프트 분석 후 적절한 도구 선택
+3. 도구 실행 및 결과 수집
+4. 도구 결과를 포함한 최종 응답 생성
+
+### 지원되는 MCP 도구 예시
+
+- `get_appraisals`: 평가 목록 조회
+- `get_response_results`: 평가 응답 결과 조회
+- 기타 MCP 서버에 등록된 모든 도구
+
+## 인증
+
+### API 키 인증
+
+모든 요청에는 `Authorization` 헤더에 API 키가 필요합니다:
+
+```
+Authorization: Bearer tlx_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+API 키는 `tlx_` 접두사와 32자의 16진수로 구성됩니다.
+
+### TTID 쿠키 인증
+
+MCP 도구를 사용하려면 TTID 쿠키가 필요합니다:
+
+```
+Cookie: TTID=your_jwt_token
+```
+
+TTID는 원본 서비스의 JWT 토큰으로, MCP 서버로 그대로 전달됩니다.
+
+## 프로젝트 구조
+
+```
+talenx-llm-gateway/
+├── src/
+│   ├── app.ts              # Express 앱 설정
+│   ├── index.ts            # 서버 엔트리포인트
+│   ├── config/             # 설정 관리
+│   ├── middleware/         # Express 미들웨어
+│   │   ├── auth.ts         # 인증 처리
+│   │   ├── rateLimiter.ts  # Rate limiting
+│   │   └── validation.ts   # 요청 검증
+│   ├── routes/             # API 라우트
+│   │   ├── process.ts      # 통합 처리 엔드포인트
+│   │   ├── llm.ts          # OpenAI 직접 호출
+│   │   └── mcp.ts          # MCP 도구 관리
+│   ├── services/           # 비즈니스 로직
+│   │   ├── orchestrator.ts # 메인 처리 플로우
+│   │   ├── llm/            # LLM 서비스
+│   │   └── mcp/            # MCP 클라이언트
+│   └── utils/              # 유틸리티
+│       ├── logger.ts       # 로깅
+│       └── redis.ts        # Redis 클라이언트
+├── postman/                # Postman 컬렉션
+├── .env.example            # 환경 변수 예시
+└── package.json            # 프로젝트 설정
+```
+
+## 성능 최적화
+
+- **Redis 캐싱**: MCP 도구 목록과 결과를 캐싱하여 응답 속도 향상
+- **Rate Limiting**: API 남용 방지
+- **스트리밍**: 대용량 응답의 실시간 전송
+- **연결 풀링**: 데이터베이스 및 외부 API 연결 최적화
+
+## 모니터링
+
+- Winston 로거를 통한 구조화된 로깅
+- 에러 추적 및 성능 메트릭
+- Health check 엔드포인트: `/api/v1/health`
+
+## 문제 해결
+
+### Redis 연결 오류
+```bash
+# Redis 서버 상태 확인
+redis-cli ping
+
+# Redis 서버 시작
+redis-server
+```
+
+### MCP 서버 연결 오류
+```bash
+# MCP 서버 상태 확인
+curl http://localhost:9999/health
+
+# MCP 서버 로그 확인
+tail -f ~/Desktop/talenx-ssq-mcp/logs/mcp-*.log
 ```
 
 ### OpenAI API 오류
+- API 키 확인
+- Rate limit 확인
+- 모델 이름 확인
 
-- OpenAI API 키가 유효한지 확인
-- OpenAI 계정의 요청 제한 확인
-- 선택한 모델이 계정에서 사용 가능한지 확인
+## 라이선스
 
-## 📦 API 응답 형식
+MIT License
 
-### 성공 응답
+## 기여
 
-```json
-{
-  "data": "...",
-  "usage": {
-    "promptTokens": 100,
-    "completionTokens": 150,
-    "totalTokens": 250
-  }
-}
-```
+이슈 및 PR을 환영합니다. 기여 가이드라인을 참조해주세요.
 
-### 오류 응답
+## 지원
 
-```json
-{
-  "error": {
-    "message": "오류 설명",
-    "statusCode": 400
-  },
-  "timestamp": "2024-01-01T00:00:00.000Z",
-  "path": "/api/v1/endpoint"
-}
-```
-
-## 🤝 기여
-
-기여를 환영합니다! Pull Request를 제출해주세요.
-
-## 📄 라이선스
-
-MIT 라이선스 - 자세한 내용은 LICENSE 파일을 참조하세요
-
-## 🔗 링크
-
-- [API 문서](./docs/API_DOCUMENTATION.md)
-- [Postman 컬렉션](./postman/)
-- [OpenAI API 참조](https://platform.openai.com/docs)
-
----
-
-Node.js, TypeScript, Redis로 ❤️를 담아 제작
+문제가 있으시면 이슈를 생성하거나 support@talenx.com으로 문의해주세요.
