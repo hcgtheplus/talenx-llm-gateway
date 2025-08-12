@@ -176,33 +176,89 @@ Cookie: TTID=your_jwt_token
 
 TTID는 원본 서비스의 JWT 토큰으로, MCP 서버로 그대로 전달됩니다.
 
-## 프로젝트 구조
+## 프로젝트 구조 및 파일 역할
 
-```
-talenx-llm-gateway/
-├── src/
-│   ├── app.ts              # Express 앱 설정
-│   ├── index.ts            # 서버 엔트리포인트
-│   ├── config/             # 설정 관리
-│   ├── middleware/         # Express 미들웨어
-│   │   ├── auth.ts         # 인증 처리
-│   │   ├── rateLimiter.ts  # Rate limiting
-│   │   └── validation.ts   # 요청 검증
-│   ├── routes/             # API 라우트
-│   │   ├── process.ts      # 통합 처리 엔드포인트
-│   │   ├── llm.ts          # OpenAI 직접 호출
-│   │   └── mcp.ts          # MCP 도구 관리
-│   ├── services/           # 비즈니스 로직
-│   │   ├── orchestrator.ts # 메인 처리 플로우
-│   │   ├── llm/            # LLM 서비스
-│   │   └── mcp/            # MCP 클라이언트
-│   └── utils/              # 유틸리티
-│       ├── logger.ts       # 로깅
-│       └── redis.ts        # Redis 클라이언트
-├── postman/                # Postman 컬렉션
-├── .env.example            # 환경 변수 예시
-└── package.json            # 프로젝트 설정
-```
+### 📁 루트 디렉토리
+- **README.md** - 프로젝트 개요, 설치 및 사용 가이드
+- **API_DOCUMENTATION.md** - 상세한 API 엔드포인트 문서
+- **.env.example** - 환경 변수 템플릿
+- **package.json** - Node.js 프로젝트 설정 및 의존성
+- **tsconfig.json** - TypeScript 컴파일러 설정
+- **docker-compose.yml** - Docker 컨테이너 오케스트레이션
+- **Dockerfile** - Docker 이미지 빌드 설정
+
+### 📂 /src
+
+#### 🚀 엔트리 포인트
+- **index.ts** - 서버 시작점, Express 서버 실행
+- **app.ts** - Express 애플리케이션 설정, 미들웨어 및 라우트 등록
+
+#### ⚙️ /config
+- **index.ts** - 환경 변수 관리 및 중앙 설정 관리
+  - 서버 포트 (1111)
+  - Redis 연결 정보 (6379)
+  - OpenAI API 설정
+  - MCP 서버 URL (9999)
+  - Rate limiting 설정
+
+#### 🛡️ /middleware
+- **auth.ts** - API 키 및 TTID 인증 처리
+  - Bearer 토큰 검증
+  - TTID 쿠키 추출
+  - API 키 형식 검증 (tlx_*)
+- **errorHandler.ts** - 전역 에러 처리 및 표준화된 에러 응답
+- **rateLimiter.ts** - API 요청 제한 (분당 100/10 요청)
+- **validation.ts** - 요청 데이터 유효성 검사
+
+#### 🛣️ /routes
+- **process.ts** - 통합 처리 라우트
+  - `/process` - LLM 자동 도구 선택 및 실행
+  - `/prompt` - 단순 LLM 응답
+  - `/available-tools` - 사용 가능한 MCP 도구 목록
+- **llm.ts** - OpenAI 직접 호출 라우트
+  - `/llm/chat` - Chat completion
+  - `/llm/complete` - Text completion
+  - `/llm/usage` - 사용량 통계
+  - `/llm/providers` - 지원 프로바이더
+  - `/llm/models/:provider` - 모델 목록
+- **mcp.ts** - MCP 도구 관리 라우트
+  - `/mcp/tools` - 도구 목록 조회
+  - `/mcp/tools/call` - 도구 직접 실행
+  - `/mcp/health` - MCP 서버 상태
+- **auth.ts** - 인증 관련 라우트
+  - `/auth/api-key/generate` - 테스트용 키 생성
+  - `/auth/api-key/validate` - 키 형식 검증
+  - `/auth/api-key/info` - 키 정보
+  - `/auth/api-key/revoke` - 키 폐기 (정보용)
+
+#### 🧠 /services
+- **orchestrator.ts** - 핵심 비즈니스 로직
+  - 프롬프트 분석 및 MCP 도구 자동 선택
+  - 도구 실행 및 결과 수집
+  - LLM 응답 생성 및 스트리밍
+- **/llm**
+  - **base.ts** - LLM 프로바이더 추상 클래스
+  - **openai.ts** - OpenAI API 구현
+  - **index.ts** - LLM 서비스 팩토리 및 인터페이스
+- **/mcp**
+  - **client.ts** - MCP 서버 통신 클라이언트
+    - 도구 목록 조회
+    - 도구 실행
+    - TTID 인증 처리
+    - Redis 캐싱
+
+#### 🔧 /utils
+- **logger.ts** - Winston 로거 설정 (구조화된 로깅)
+- **redis.ts** - Redis 클라이언트 및 캐싱 유틸리티
+
+### 📂 /postman
+- **Talenx-LLM-Gateway.postman_collection.json** - 모든 API 엔드포인트 테스트 컬렉션
+
+### 📂 /docs
+- 추가 문서 (필요시)
+
+### 📂 /logs
+- 애플리케이션 로그 파일 저장
 
 ## 성능 최적화
 
