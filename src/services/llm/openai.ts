@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { LLMProvider, LLMOptions, LLMResponse, LLMMessage } from './base';
+import { LLMProvider, LLMOptions, LLMResponse } from './base';
 import { logger } from '../../utils/logger';
 
 export class OpenAIProvider extends LLMProvider {

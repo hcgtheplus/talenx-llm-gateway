@@ -1,12 +1,11 @@
 import { LLMProvider, LLMOptions, LLMResponse } from './base';
 import { OpenAIProvider } from './openai';
-import { AnthropicProvider } from './anthropic';
 import { config } from '../../config';
 import { AppError } from '../../middleware/errorHandler';
 import { redisClient } from '../../utils/redis';
 import { logger } from '../../utils/logger';
 
-export type LLMProviderType = 'openai' | 'anthropic';
+export type LLMProviderType = 'openai';
 
 export class LLMService {
   private providers: Map<LLMProviderType, LLMProvider>;
@@ -14,18 +13,11 @@ export class LLMService {
   constructor() {
     this.providers = new Map();
     
-    // Initialize providers
+    // Initialize OpenAI provider
     if (config.llm.openai.apiKey) {
       this.providers.set('openai', new OpenAIProvider(
         config.llm.openai.apiKey,
         config.llm.openai.baseUrl
-      ));
-    }
-    
-    if (config.llm.anthropic.apiKey) {
-      this.providers.set('anthropic', new AnthropicProvider(
-        config.llm.anthropic.apiKey,
-        config.llm.anthropic.baseUrl
       ));
     }
   }

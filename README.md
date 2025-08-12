@@ -1,328 +1,287 @@
-# TalenX LLM Gateway
+# Talenx LLM Gateway
 
-Enterprise-grade LLM Gateway server with MCP integration, built with TypeScript, Express, and Redis.
+A lightweight, production-ready API gateway that seamlessly integrates OpenAI models with MCP (Model Context Protocol) servers. Features automatic API key registration and intelligent caching for optimal performance.
 
-## Features
+## 🚀 Key Features
 
-- **Multi-LLM Support**: OpenAI and Anthropic providers
-- **MCP Integration**: Seamless integration with Model Context Protocol servers
-- **Authentication**: API key and Bearer token authentication
-- **Rate Limiting**: Configurable per-user and per-endpoint rate limiting
-- **Caching**: Redis-based response caching for improved performance
-- **Session Management**: Secure session handling with Redis
-- **Usage Tracking**: Token usage monitoring and reporting
-- **Security**: Helmet, CORS, input validation, and sanitization
-- **Logging**: Comprehensive logging with Winston
-- **Docker Support**: Production-ready containerization
+- **Auto API Key Registration** - API keys are automatically registered in Redis on first use
+- **OpenAI Integration** - Support for GPT-3.5, GPT-4 and other OpenAI models
+- **MCP Integration** - Connect to MCP servers for extended tool capabilities
+- **Smart Caching** - Redis-based caching for improved response times
+- **Rate Limiting** - Built-in protection against API abuse
+- **Usage Tracking** - Monitor token usage for billing and analytics
 
-## Architecture
+## 📋 Prerequisites
 
-```
-┌──────────────┐      ┌──────────────┐      ┌──────────────┐
-│   Clients    │─────▶│  LLM Gateway │─────▶│  LLM APIs    │
-└──────────────┘      │              │      │  (OpenAI,    │
-                      │   - Auth     │      │   Anthropic) │
-                      │   - Rate Limit│      └──────────────┘
-                      │   - Caching  │
-                      │   - Routing  │      ┌──────────────┐
-                      │              │─────▶│  MCP Server  │
-                      └──────────────┘      └──────────────┘
-                             │
-                             ▼
-                      ┌──────────────┐
-                      │    Redis     │
-                      └──────────────┘
-```
+- Node.js 18+
+- Redis Server
+- OpenAI API Key
 
-## Quick Start
+## 🛠️ Quick Start
 
-### Prerequisites
-
-- Node.js 20+
-- Redis 7+
-- Docker (optional)
-
-### Installation
+### 1. Installation
 
 ```bash
+# Clone the repository
+git clone https://github.com/yourusername/talenx-llm-gateway.git
+cd talenx-llm-gateway
+
 # Install dependencies
 npm install
 
-# Copy environment variables
+# Set up environment variables
 cp .env.example .env
-
-# Edit .env with your configuration
-nano .env
 ```
 
-### Development
+### 2. Configuration
+
+Edit `.env` file with your settings:
+
+```env
+# Server
+PORT=1111
+NODE_ENV=development
+
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+# OpenAI
+OPENAI_API_KEY=sk-your-openai-api-key
+
+# MCP Server (optional)
+MCP_SERVER_URL=http://localhost:9999
+MCP_WORKSPACE_HASH=your_workspace_hash
+```
+
+### 3. Start the Server
 
 ```bash
-# Start Redis (포트 3333)
-redis-server redis.conf
-# 또는
-redis-server --port 3333
-
-# Run in development mode (포트 1111)
+# Development mode
 npm run dev
-```
 
-서버는 http://localhost:1111 에서 실행됩니다.
-
-### Production
-
-```bash
-# Build TypeScript
+# Production mode
 npm run build
-
-# Start server
 npm start
 ```
 
-### Docker
+## 🔑 Authentication
 
-```bash
-# Build and start services
-docker-compose up -d
+All API requests require an `X-API-Key` header. The API key format is:
 
-# View logs
-docker-compose logs -f
-
-# Stop services
-docker-compose down
+```
+tlx_[32 hexadecimal characters]
 ```
 
-## API Documentation
+Example: `tlx_0123456789abcdef0123456789abcdef`
 
-### Authentication
+> **Note:** API keys are automatically registered in Redis on first use - no manual registration needed!
 
-#### Generate API Key
+### Example Request
+
 ```bash
-POST /api/v1/auth/api-key/generate
-
-Response:
-{
-  "apiKey": "tlx_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-  "keyId": "uuid",
-  "expiresIn": 31536000,
-  "message": "API key created successfully. Keep it secure!"
-}
+curl -X GET http://localhost:1111/api/v1/llm/providers \
+  -H "X-API-Key: tlx_0123456789abcdef0123456789abcdef"
 ```
 
-#### Validate API Key
-```bash
-POST /api/v1/auth/api-key/validate
-Content-Type: application/json
+## 📚 Core API Endpoints
 
-{
-  "apiKey": "tlx_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-}
+### OpenAI Chat Completion
 
-Response:
-{
-  "valid": true,
-  "keyId": "uuid"
-}
-```
-
-### LLM Operations
-
-#### Chat Completion
-```bash
+```http
 POST /api/v1/llm/chat
-X-API-Key: tlx_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-Content-Type: application/json
+```
 
+```json
 {
-  "provider": "openai",
   "model": "gpt-3.5-turbo",
   "messages": [
-    {"role": "system", "content": "You are a helpful assistant."},
     {"role": "user", "content": "Hello!"}
   ],
   "temperature": 0.7,
-  "maxTokens": 1000
+  "maxTokens": 500,
+  "stream": false
 }
 ```
 
-#### Stream Chat
-```bash
-POST /api/v1/llm/chat
-X-API-Key: tlx_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-Content-Type: application/json
+### MCP Tool Execution
 
-{
-  "provider": "anthropic",
-  "model": "claude-3-sonnet-20240229",
-  "messages": [...],
-  "stream": true
-}
-```
-
-### MCP Integration
-
-#### List Tools
-```bash
-GET /api/v1/mcp/tools
-X-API-Key: tlx_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-```
-
-#### Call Tool
-```bash
+```http
 POST /api/v1/mcp/tools/call
-X-API-Key: tlx_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-Content-Type: application/json
+```
 
+```json
 {
   "name": "get_appraisals",
   "arguments": {
     "page": 1,
-    "size": 10,
-    "status": "pending"
+    "size": 10
   }
 }
 ```
 
-#### Get Appraisals
-```bash
-GET /api/v1/mcp/appraisals?page=1&size=10&status=pending
-X-API-Key: tlx_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+### Integrated Processing (OpenAI + MCP)
+
+```http
+POST /api/v1/process
 ```
 
-## Configuration
-
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `PORT` | Server port | 3000 |
-| `NODE_ENV` | Environment | development |
-| `REDIS_HOST` | Redis host | localhost |
-| `REDIS_PORT` | Redis port | 6379 |
-| `RATE_LIMIT_WINDOW_MS` | Rate limit window (ms) | 60000 |
-| `RATE_LIMIT_MAX_REQUESTS` | Max requests per window | 100 |
-| `OPENAI_API_KEY` | OpenAI API key | - |
-| `ANTHROPIC_API_KEY` | Anthropic API key | - |
-| `MCP_SERVER_URL` | MCP server URL | http://localhost:4000 |
-| `JWT_SECRET` | JWT secret key | - |
-
-## Security Features
-
-- **Authentication**: API key and Bearer token support
-- **Rate Limiting**: Per-user and per-endpoint limits
-- **Input Validation**: Request validation and sanitization
-- **CORS**: Configurable CORS policies
-- **Helmet**: Security headers
-- **HTTPS**: SSL/TLS support in production
-
-## Monitoring
-
-### Health Check
-```bash
-GET http://localhost:1111/health
-
-Response:
+```json
 {
-  "status": "healthy",
-  "timestamp": "2024-01-12T10:30:00.000Z",
-  "uptime": 3600,
-  "environment": "production"
+  "prompt": "Analyze the current appraisals and provide insights",
+  "model": "gpt-4",
+  "mcpTools": ["get_appraisals"],
+  "temperature": 0.5
 }
 ```
 
-### Usage Statistics
+## 📁 Project Structure
+
+```
+src/
+├── config/          # Configuration management
+├── middleware/      
+│   ├── auth.ts      # API key authentication & auto-registration
+│   ├── rateLimiter.ts
+│   └── validation.ts
+├── routes/          
+│   ├── auth.ts      # Authentication endpoints
+│   ├── llm.ts       # OpenAI endpoints
+│   ├── mcp.ts       # MCP endpoints
+│   └── process.ts   # Integrated processing
+├── services/        
+│   ├── llm/         # OpenAI service layer
+│   ├── mcp/         # MCP client
+│   └── orchestrator.ts
+└── utils/           
+    ├── logger.ts    # Winston logger
+    └── redis.ts     # Redis client
+```
+
+## 🧪 Testing
+
 ```bash
-GET /api/v1/llm/usage?days=30
-X-API-Key: tlx_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-
-Response:
-{
-  "usage": {
-    "openai": {
-      "promptTokens": 10000,
-      "completionTokens": 5000,
-      "totalTokens": 15000
-    }
-  }
-}
-```
-
-## Project Structure
-
-```
-talenx-llm-gateway/
-├── src/
-│   ├── config/         # Configuration
-│   ├── middleware/     # Express middleware
-│   ├── routes/         # API routes
-│   ├── services/       # Business logic
-│   │   ├── llm/       # LLM providers
-│   │   └── mcp/       # MCP client
-│   ├── utils/         # Utilities
-│   ├── app.ts         # Express app setup
-│   └── index.ts       # Entry point
-├── logs/              # Application logs
-├── docker-compose.yml # Docker configuration
-├── Dockerfile         # Container definition
-├── tsconfig.json      # TypeScript config
-└── package.json       # Dependencies
-```
-
-## Development
-
-### Build
-```bash
-npm run build
-```
-
-### Run Tests
-```bash
+# Run tests
 npm test
-```
 
-### Linting
-```bash
+# Check types
+npm run typecheck
+
+# Lint code
 npm run lint
 ```
 
-## Production Deployment
+## 📊 Monitoring
 
-### Kubernetes
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: llm-gateway
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: llm-gateway
-  template:
-    metadata:
-      labels:
-        app: llm-gateway
-    spec:
-      containers:
-      - name: llm-gateway
-        image: talenx/llm-gateway:latest
-        ports:
-        - containerPort: 3000
-        env:
-        - name: NODE_ENV
-          value: "production"
-        - name: REDIS_HOST
-          value: "redis-service"
+### Health Check
+
+```http
+GET /health
 ```
 
-### AWS ECS
-Use the provided Dockerfile with ECS task definitions and ALB for load balancing.
+Returns server status, Redis connection, and uptime.
 
-### Scaling
-- Horizontal scaling with multiple instances
-- Redis cluster for high availability
-- Load balancer for request distribution
+### Usage Statistics
 
-## License
+```http
+GET /api/v1/llm/usage?days=7
+```
 
-MIT
+Returns token usage statistics for the specified period.
+
+## 🔧 Advanced Configuration
+
+### Rate Limiting
+
+Configure in `.env`:
+
+```env
+RATE_LIMIT_WINDOW_MS=60000  # 1 minute
+RATE_LIMIT_MAX_REQUESTS=100
+```
+
+### Caching
+
+- MCP tools: 1 hour cache
+- LLM responses (temperature=0): 5 minutes cache
+- Appraisal data: 5 minutes cache
+
+### Supported OpenAI Models
+
+- gpt-4-turbo-preview
+- gpt-4
+- gpt-3.5-turbo
+- gpt-3.5-turbo-16k
+
+## 🐛 Troubleshooting
+
+### Redis Connection Error
+
+```bash
+# Check Redis is running
+redis-cli ping
+
+# Verify port in .env matches Redis config
+echo $REDIS_PORT
+```
+
+### Invalid API Key Format
+
+Ensure your API key follows the pattern: `tlx_[32 hex chars]`
+
+```javascript
+// Valid format example
+const validKey = 'tlx_0123456789abcdef0123456789abcdef';
+```
+
+### OpenAI API Errors
+
+- Verify your OpenAI API key is valid
+- Check rate limits on your OpenAI account
+- Ensure selected model is available for your account
+
+## 📦 API Response Format
+
+### Success Response
+
+```json
+{
+  "data": "...",
+  "usage": {
+    "promptTokens": 100,
+    "completionTokens": 150,
+    "totalTokens": 250
+  }
+}
+```
+
+### Error Response
+
+```json
+{
+  "error": {
+    "message": "Error description",
+    "statusCode": 400
+  },
+  "timestamp": "2024-01-01T00:00:00.000Z",
+  "path": "/api/v1/endpoint"
+}
+```
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📄 License
+
+MIT License - see LICENSE file for details
+
+## 🔗 Links
+
+- [API Documentation](./docs/API_DOCUMENTATION.md)
+- [Postman Collection](./postman/)
+- [OpenAI API Reference](https://platform.openai.com/docs)
+
+---
+
+Built with ❤️ using Node.js, TypeScript, and Redis

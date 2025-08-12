@@ -26,10 +26,6 @@ export const config = {
       apiKey: process.env.OPENAI_API_KEY || "",
       baseUrl: "https://api.openai.com/v1",
     },
-    anthropic: {
-      apiKey: process.env.ANTHROPIC_API_KEY || "",
-      baseUrl: "https://api.anthropic.com",
-    },
   },
 
   mcp: {
@@ -37,10 +33,7 @@ export const config = {
     workspaceHash: process.env.MCP_WORKSPACE_HASH || "",
   },
 
-  security: {
-    jwtSecret: process.env.JWT_SECRET || "change_this_secret",
-    apiKeySalt: process.env.API_KEY_SALT || "change_this_salt",
-  },
+  // Security configs removed - using simple API key auto-registration
 
   logging: {
     level: process.env.LOG_LEVEL || "info",

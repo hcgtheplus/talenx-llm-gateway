@@ -13,7 +13,7 @@ export interface ValidationRule {
 }
 
 export const validate = (rules: ValidationRule[], location: 'body' | 'query' | 'params' = 'body') => {
-  return (req: Request, res: Response, next: NextFunction): void => {
+  return (req: Request, _res: Response, next: NextFunction): void => {
     const data = req[location];
     const errors: string[] = [];
 
@@ -111,7 +111,7 @@ export const commonValidations = {
 
 // Sanitization middleware
 export const sanitize = (fields: string[], location: 'body' | 'query' | 'params' = 'body') => {
-  return (req: Request, res: Response, next: NextFunction): void => {
+  return (req: Request, _res: Response, next: NextFunction): void => {
     const data = req[location];
 
     for (const field of fields) {

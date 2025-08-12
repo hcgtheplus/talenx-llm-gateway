@@ -10,7 +10,7 @@ export interface AuthRequest extends Request {
   };
 }
 
-// API Key authentication (simplified)
+// API Key authentication with auto-registration
 export const apiKeyAuth = async (
   req: AuthRequest,
   res: Response,
@@ -31,11 +31,13 @@ export const apiKeyAuth = async (
     }
 
     // Check if API key exists in Redis
-    const keyId = await redisClient.getToken(apiKey);
+    let keyId = await redisClient.getToken(apiKey);
     
     if (!keyId) {
-      res.status(401).json({ error: 'Invalid or expired API key' });
-      return;
+      // Auto-register new API key on first request
+      keyId = `user_${crypto.randomBytes(8).toString('hex')}`;
+      await redisClient.setToken(apiKey, keyId);
+      logger.info(`Auto-registered new API key: ${apiKey} with ID: ${keyId}`);
     }
 
     // Attach key info to request

@@ -10,7 +10,6 @@ const router = Router();
 
 // Validation rules for chat endpoint
 const chatValidation = [
-  { field: 'provider', required: true, type: 'string' as const, enum: ['openai', 'anthropic'] },
   { field: 'model', required: true, type: 'string' as const },
   { field: 'messages', required: true, type: 'array' as const, min: 1 },
   { field: 'temperature', required: false, type: 'number' as const, min: 0, max: 2 },
@@ -25,7 +24,8 @@ router.post(
   standardRateLimiter,
   validate(chatValidation),
   asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { provider, model, messages, temperature, maxTokens, topP, stream } = req.body;
+    const { model, messages, temperature, maxTokens, topP, stream } = req.body;
+    const provider = 'openai'; // OpenAI only
 
     const options = {
       model,
@@ -44,7 +44,7 @@ router.post(
       res.setHeader('Connection', 'keep-alive');
 
       try {
-        for await (const chunk of llmService.streamChat(provider as LLMProviderType, options)) {
+        for await (const chunk of llmService.streamChat(provider, options)) {
           res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
         }
         res.write('data: [DONE]\n\n');
@@ -54,7 +54,7 @@ router.post(
         res.end();
       }
     } else {
-      const response = await llmService.chat(provider as LLMProviderType, options);
+      const response = await llmService.chat(provider, options);
       res.json(response);
     }
   })
@@ -64,7 +64,7 @@ router.post(
 router.get(
   '/providers',
   authenticate,
-  asyncHandler(async (req: AuthRequest, res: Response) => {
+  asyncHandler(async (_req: AuthRequest, res: Response) => {
     const providers = llmService.getAvailableProviders();
     
     res.json({
@@ -104,14 +104,6 @@ function getModelsForProvider(provider: LLMProviderType): string[] {
         'gpt-4',
         'gpt-3.5-turbo',
         'gpt-3.5-turbo-16k',
-      ];
-    case 'anthropic':
-      return [
-        'claude-3-opus-20240229',
-        'claude-3-sonnet-20240229',
-        'claude-3-haiku-20240307',
-        'claude-2.1',
-        'claude-instant-1.2',
       ];
     default:
       return [];

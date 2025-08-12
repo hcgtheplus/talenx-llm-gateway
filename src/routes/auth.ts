@@ -12,7 +12,7 @@ const router = Router();
 router.post(
   '/api-key/generate',
   strictRateLimiter,
-  asyncHandler(async (req: Request, res: Response) => {
+  asyncHandler(async (_req: Request, res: Response) => {
     // Generate unique API key
     const apiKey = `tlx_${crypto.randomBytes(16).toString('hex')}`;
     const keyId = crypto.randomUUID();

@@ -58,7 +58,7 @@ export const createApp = (): Application => {
   app.use(lenientRateLimiter);
 
   // Health check endpoint
-  app.get('/health', async (req, res) => {
+  app.get('/health', async (_req, res) => {
     try {
       // Check Redis connection
       await redisClient.getClient().ping();

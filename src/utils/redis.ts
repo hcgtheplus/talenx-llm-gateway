@@ -51,22 +51,7 @@ class RedisClient {
     }
   }
 
-  // Session management
-  async setSession(sessionId: string, data: any, ttl: number = 3600): Promise<void> {
-    const client = this.getClient();
-    await client.setex(`session:${sessionId}`, ttl, JSON.stringify(data));
-  }
-
-  async getSession(sessionId: string): Promise<any | null> {
-    const client = this.getClient();
-    const data = await client.get(`session:${sessionId}`);
-    return data ? JSON.parse(data) : null;
-  }
-
-  async deleteSession(sessionId: string): Promise<void> {
-    const client = this.getClient();
-    await client.del(`session:${sessionId}`);
-  }
+  // Session management methods removed - using simple API key auth
 
   // Token management
   async setToken(token: string, userId: string, ttl: number = 86400): Promise<void> {

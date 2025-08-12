@@ -13,7 +13,7 @@ router.get(
   '/tools',
   authenticate,
   standardRateLimiter,
-  asyncHandler(async (req: AuthRequest, res: Response) => {
+  asyncHandler(async (_req: AuthRequest, res: Response) => {
     const tools = await mcpClient.listTools();
     res.json({ tools });
   })
@@ -103,7 +103,7 @@ router.post(
 // MCP health check
 router.get(
   '/health',
-  asyncHandler(async (req: AuthRequest, res: Response) => {
+  asyncHandler(async (_req: AuthRequest, res: Response) => {
     const isHealthy = await mcpClient.healthCheck();
     
     res.status(isHealthy ? 200 : 503).json({

@@ -15,7 +15,6 @@ router.post(
   standardRateLimiter,
   validate([
     { field: 'prompt', required: true, type: 'string' as const, min: 1 },
-    { field: 'provider', required: false, type: 'string' as const, enum: ['openai', 'anthropic'] },
     { field: 'model', required: false, type: 'string' as const },
     { field: 'mcpTools', required: false, type: 'array' as const },
     { field: 'temperature', required: false, type: 'number' as const, min: 0, max: 2 },
@@ -25,7 +24,6 @@ router.post(
   asyncHandler(async (req: AuthRequest, res: Response) => {
     const { 
       prompt, 
-      provider, 
       model, 
       mcpTools, 
       temperature, 
@@ -46,7 +44,6 @@ router.post(
 
     const processRequest = {
       prompt,
-      provider,
       model,
       mcpTools,
       temperature,
@@ -79,22 +76,20 @@ router.post(
   })
 );
 
-// 간단한 프롬프트 처리 (MCP 없이)
+// 간단한 프롬프트 처리 (MCP 없이, OpenAI only)
 router.post(
   '/prompt',
   authenticate,
   standardRateLimiter,
   validate([
     { field: 'prompt', required: true, type: 'string' as const, min: 1 },
-    { field: 'provider', required: false, type: 'string' as const, enum: ['openai', 'anthropic'] },
     { field: 'model', required: false, type: 'string' as const },
   ]),
   asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { prompt, provider, model } = req.body;
+    const { prompt, model } = req.body;
 
     const response = await orchestrator.process({
       prompt,
-      provider,
       model,
       mcpTools: [], // MCP 도구 사용 안함
     });

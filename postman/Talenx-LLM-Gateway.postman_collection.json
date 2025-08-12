@@ -1,0 +1,690 @@
+{
+  "info": {
+    "name": "Talenx LLM Gateway",
+    "description": "Complete API collection for Talenx LLM Gateway - OpenAI + MCP Integration",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:1111",
+      "type": "string"
+    },
+    {
+      "key": "apiKey",
+      "value": "tlx_0123456789abcdef0123456789abcdef",
+      "type": "string",
+      "description": "Auto-registered on first use"
+    }
+  ],
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "X-API-Key",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "{{apiKey}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "🚀 Quick Start",
+      "item": [
+        {
+          "name": "1. Health Check",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Check server health status (no auth required)"
+          }
+        },
+        {
+          "name": "2. First API Request",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/llm/providers",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "llm", "providers"]
+            },
+            "description": "Your API key will be automatically registered on first use"
+          }
+        },
+        {
+          "name": "3. Simple Chat",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"gpt-3.5-turbo\",\n  \"messages\": [\n    {\"role\": \"user\", \"content\": \"Hello! What can you do?\"}\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/llm/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "llm", "chat"]
+            },
+            "description": "Basic chat with OpenAI"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔐 Authentication",
+      "item": [
+        {
+          "name": "Validate API Key",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"apiKey\": \"{{apiKey}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/api-key/validate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "api-key", "validate"]
+            }
+          }
+        },
+        {
+          "name": "Get API Key Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/api-key/info",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "api-key", "info"]
+            }
+          }
+        },
+        {
+          "name": "Revoke API Key",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/api-key/revoke",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "api-key", "revoke"]
+            },
+            "description": "⚠️ This will invalidate your API key"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🤖 OpenAI",
+      "item": [
+        {
+          "name": "Chat Completion",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"gpt-3.5-turbo\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a helpful assistant.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Explain quantum computing in simple terms\"\n    }\n  ],\n  \"temperature\": 0.7,\n  \"maxTokens\": 500\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/llm/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "llm", "chat"]
+            }
+          }
+        },
+        {
+          "name": "Streaming Chat",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"gpt-3.5-turbo\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Write a short story about a robot\"\n    }\n  ],\n  \"stream\": true,\n  \"temperature\": 0.8\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/llm/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "llm", "chat"]
+            },
+            "description": "Returns Server-Sent Events stream"
+          }
+        },
+        {
+          "name": "GPT-4 Advanced",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"gpt-4\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are an expert software architect.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Design a microservices architecture for an e-commerce platform\"\n    }\n  ],\n  \"temperature\": 0.5,\n  \"maxTokens\": 1500\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/llm/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "llm", "chat"]
+            }
+          }
+        },
+        {
+          "name": "Multi-turn Conversation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"gpt-3.5-turbo\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a Python tutor.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"What is a list comprehension?\"\n    },\n    {\n      \"role\": \"assistant\",\n      \"content\": \"A list comprehension is a concise way to create lists in Python. It consists of brackets containing an expression followed by a for clause.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Can you show me an example?\"\n    }\n  ],\n  \"temperature\": 0.7\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/llm/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "llm", "chat"]
+            }
+          }
+        },
+        {
+          "name": "List Available Models",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/llm/providers",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "llm", "providers"]
+            }
+          }
+        },
+        {
+          "name": "Get Usage Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/llm/usage?days=7",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "llm", "usage"],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "7"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔧 MCP Tools",
+      "item": [
+        {
+          "name": "List Available Tools",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/mcp/tools",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "mcp", "tools"]
+            }
+          }
+        },
+        {
+          "name": "Execute Tool",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"get_appraisals\",\n  \"arguments\": {\n    \"page\": 1,\n    \"size\": 10\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/mcp/tools/call",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "mcp", "tools", "call"]
+            }
+          }
+        },
+        {
+          "name": "Get Appraisals",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/mcp/appraisals?page=1&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "mcp", "appraisals"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "disabled": true
+                },
+                {
+                  "key": "name",
+                  "value": "Q1",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Response Results",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/mcp/appraisals/1/groups/1/responses",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "mcp", "appraisals", "1", "groups", "1", "responses"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "size",
+                  "value": "10",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Validate Workspace",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"workspaceHash\": \"04dfe596cb2bc3f10b70606fd80b8068\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/mcp/workspace/validate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "mcp", "workspace", "validate"]
+            }
+          }
+        },
+        {
+          "name": "MCP Health Check",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/mcp/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "mcp", "health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "⚡ Integrated Processing",
+      "item": [
+        {
+          "name": "Simple Processing",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"What are the key features of a good API gateway?\",\n  \"model\": \"gpt-3.5-turbo\",\n  \"temperature\": 0.7\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/process",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "process"]
+            }
+          }
+        },
+        {
+          "name": "Process with MCP Tools",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"Analyze the current appraisals and provide a summary\",\n  \"model\": \"gpt-4\",\n  \"mcpTools\": [\"get_appraisals\"],\n  \"temperature\": 0.5,\n  \"maxTokens\": 1000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/process",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "process"]
+            }
+          }
+        },
+        {
+          "name": "Advanced Analysis",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"Get all appraisals, analyze their status distribution, and provide recommendations for improvement\",\n  \"model\": \"gpt-4\",\n  \"mcpTools\": [\"get_appraisals\", \"get_response_results\"],\n  \"temperature\": 0.3,\n  \"maxTokens\": 2000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/process",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "process"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📊 Examples & Scenarios",
+      "item": [
+        {
+          "name": "Code Review Assistant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"gpt-4\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a senior developer conducting a thorough code review. Focus on: code quality, potential bugs, performance, security, and best practices.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Review this JavaScript function:\\n\\nfunction processUserData(users) {\\n  let result = [];\\n  for (let i = 0; i <= users.length; i++) {\\n    if (users[i].age > 18) {\\n      result.push(users[i].name.toUpperCase());\\n    }\\n  }\\n  return result;\\n}\"\n    }\n  ],\n  \"temperature\": 0.3\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/llm/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "llm", "chat"]
+            }
+          }
+        },
+        {
+          "name": "API Documentation Generator",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"gpt-3.5-turbo\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a technical writer. Generate clear, comprehensive API documentation.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Generate OpenAPI documentation for an endpoint: POST /api/users that accepts {name: string, email: string, age: number} and returns {id: string, created: datetime, ...input fields}\"\n    }\n  ],\n  \"temperature\": 0.2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/llm/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "llm", "chat"]
+            }
+          }
+        },
+        {
+          "name": "Data Analysis Report",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"Fetch current appraisals data and create a comprehensive report including: 1) Status distribution 2) Trends 3) Key metrics 4) Recommendations\",\n  \"model\": \"gpt-4\",\n  \"mcpTools\": [\"get_appraisals\"],\n  \"temperature\": 0.4,\n  \"maxTokens\": 2500\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/process",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "process"]
+            }
+          }
+        },
+        {
+          "name": "SQL Query Generator",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"gpt-3.5-turbo\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a SQL expert. Generate optimized, secure SQL queries.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Create a SQL query to find the top 5 customers by total order value in the last 30 days, including their contact information\"\n    }\n  ],\n  \"temperature\": 0.1,\n  \"maxTokens\": 500\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/llm/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "llm", "chat"]
+            }
+          }
+        },
+        {
+          "name": "Unit Test Generator",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"gpt-3.5-turbo\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are an expert in test-driven development. Generate comprehensive unit tests.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Generate Jest unit tests for this function:\\n\\nfunction calculateDiscount(price, discountPercent, maxDiscount = 100) {\\n  if (price <= 0 || discountPercent < 0 || discountPercent > 100) {\\n    throw new Error('Invalid input');\\n  }\\n  const discount = price * (discountPercent / 100);\\n  return Math.min(discount, maxDiscount);\\n}\"\n    }\n  ],\n  \"temperature\": 0.3\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/llm/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "llm", "chat"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🧪 Testing & Debugging",
+      "item": [
+        {
+          "name": "Test Invalid API Key",
+          "request": {
+            "auth": {
+              "type": "apikey",
+              "apikey": [
+                {
+                  "key": "key",
+                  "value": "X-API-Key",
+                  "type": "string"
+                },
+                {
+                  "key": "value",
+                  "value": "tlx_invalid_key",
+                  "type": "string"
+                },
+                {
+                  "key": "in",
+                  "value": "header",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/llm/providers",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "llm", "providers"]
+            },
+            "description": "Should return 401 Unauthorized"
+          }
+        },
+        {
+          "name": "Test Missing API Key",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/llm/providers",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "llm", "providers"]
+            },
+            "description": "Should return 401 Unauthorized"
+          }
+        },
+        {
+          "name": "Test Invalid Model",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"invalid-model\",\n  \"messages\": [{\"role\": \"user\", \"content\": \"test\"}]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/llm/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "llm", "chat"]
+            },
+            "description": "Should return error for invalid model"
+          }
+        },
+        {
+          "name": "Test Rate Limiting",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/llm/providers",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "llm", "providers"]
+            },
+            "description": "Run this repeatedly to test rate limiting (100 req/min)"
+          }
+        },
+        {
+          "name": "Test Large Token Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"gpt-3.5-turbo\",\n  \"messages\": [{\"role\": \"user\", \"content\": \"Generate a very long response\"}],\n  \"maxTokens\": 4096\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/llm/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "llm", "chat"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-import { llmService, LLMProviderType, LLMMessage } from './llm';
+import { llmService, LLMMessage } from './llm';
 import { mcpClient } from './mcp/client';
 import { redisClient } from '../utils/redis';
 import { logger } from '../utils/logger';
@@ -6,7 +6,6 @@ import { AppError } from '../middleware/errorHandler';
 
 export interface ProcessRequest {
   prompt: string;
-  provider?: LLMProviderType;
   model?: string;
   mcpTools?: string[];
   temperature?: number;
@@ -34,7 +33,6 @@ export class Orchestrator {
     
     try {
       logger.info('Processing integrated request', {
-        provider: request.provider,
         hasToken: !!request.clientToken,
         mcpTools: request.mcpTools,
       });
@@ -57,8 +55,8 @@ export class Orchestrator {
       }
 
       // 2. LLM 프롬프트 실행
-      const llmProvider = request.provider || 'openai';
-      const llmModel = request.model || this.getDefaultModel(llmProvider);
+      const llmProvider = 'openai'; // OpenAI only
+      const llmModel = request.model || this.getDefaultModel();
       
       const messages: LLMMessage[] = [
         {
@@ -172,17 +170,10 @@ export class Orchestrator {
   }
 
   /**
-   * 기본 모델 선택
+   * 기본 모델 선택 (OpenAI only)
    */
-  private getDefaultModel(provider: LLMProviderType): string {
-    switch (provider) {
-      case 'openai':
-        return 'gpt-3.5-turbo';
-      case 'anthropic':
-        return 'claude-3-haiku-20240307';
-      default:
-        return 'gpt-3.5-turbo';
-    }
+  private getDefaultModel(): string {
+    return 'gpt-3.5-turbo';
   }
 
   /**
@@ -203,8 +194,8 @@ export class Orchestrator {
     }
 
     // LLM 응답 스트리밍
-    const llmProvider = request.provider || 'openai';
-    const llmModel = request.model || this.getDefaultModel(llmProvider);
+    const llmProvider = 'openai'; // OpenAI only
+    const llmModel = request.model || this.getDefaultModel();
     
     const messages: LLMMessage[] = [
       {
