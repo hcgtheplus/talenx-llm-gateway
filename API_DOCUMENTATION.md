@@ -31,7 +31,7 @@ Content-Type: application/json
 ```json
 {
   "prompt": "string",           // 필수: 사용자 프롬프트
-  "model": "string",             // 선택: OpenAI 모델 (기본: gpt-3.5-turbo)
+  "model": "string",             // 선택: OpenAI 모델 (기본: gpt-4)
   "temperature": 0.7,            // 선택: 0-2 사이 (기본: 0.7)
   "maxTokens": 1000,            // 선택: 최대 토큰 수 (기본: 1000)
   "stream": false                // 선택: 스트리밍 여부 (기본: false)
@@ -45,7 +45,7 @@ Content-Type: application/json
     "id": "chatcmpl-xxx",
     "object": "chat.completion",
     "created": 1234567890,
-    "model": "gpt-3.5-turbo",
+    "model": "gpt-4",
     "choices": [{
       "index": 0,
       "message": {
@@ -206,7 +206,7 @@ Content-Type: application/json
 ```json
 {
   "provider": "openai",
-  "model": "gpt-3.5-turbo",
+  "model": "gpt-4",
   "messages": [
     {
       "role": "system",
@@ -229,7 +229,7 @@ Content-Type: application/json
   "id": "chatcmpl-xxx",
   "object": "chat.completion",
   "created": 1234567890,
-  "model": "gpt-3.5-turbo",
+  "model": "gpt-4",
   "choices": [{
     "index": 0,
     "message": {
@@ -421,8 +421,8 @@ Rate limit 초과시 `429 Too Many Requests` 응답과 함께 `Retry-After` 헤�
 
 - `gpt-4-turbo-preview`
 - `gpt-4`
-- `gpt-3.5-turbo`
-- `gpt-3.5-turbo-16k`
+- `gpt-4`
+- `gpt-4-16k`
 
 ---
 

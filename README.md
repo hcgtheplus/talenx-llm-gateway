@@ -57,7 +57,7 @@ NODE_ENV=production
 # OpenAI 설정
 OPENAI_API_KEY=your-openai-api-key
 OPENAI_BASE_URL=https://api.openai.com/v1
-OPENAI_DEFAULT_MODEL=gpt-3.5-turbo
+OPENAI_DEFAULT_MODEL=gpt-4
 
 # Redis 설정
 REDIS_HOST=localhost
@@ -97,7 +97,7 @@ curl -X POST http://localhost:1111/api/v1/process \
   -H "Content-Type: application/json" \
   -d '{
     "prompt": "평가 목록을 보여줘",
-    "model": "gpt-3.5-turbo",
+    "model": "gpt-4",
     "temperature": 0.7
   }'
 ```
@@ -112,7 +112,7 @@ curl -X POST http://localhost:1111/api/v1/prompt \
   -H "Content-Type: application/json" \
   -d '{
     "prompt": "Node.js란 무엇인가요?",
-    "model": "gpt-3.5-turbo"
+    "model": "gpt-4"
   }'
 ```
 

@@ -36,7 +36,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"prompt\": \"2022년 평가 목록을 보여줘\",\n  \"model\": \"gpt-3.5-turbo\",\n  \"temperature\": 0.7,\n  \"maxTokens\": 1000\n}"
+              "raw": "{\n  \"prompt\": \"2022년 평가 목록을 보여줘\",\n  \"model\": \"gpt-4\",\n  \"temperature\": 0.7,\n  \"maxTokens\": 1000\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/process",
@@ -62,7 +62,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"prompt\": \"평가 결과를 분석해줘\",\n  \"model\": \"gpt-3.5-turbo\",\n  \"stream\": true\n}"
+              "raw": "{\n  \"prompt\": \"평가 결과를 분석해줘\",\n  \"model\": \"gpt-4\",\n  \"stream\": true\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/process",
@@ -88,7 +88,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"prompt\": \"Node.js란 무엇인가요?\",\n  \"model\": \"gpt-3.5-turbo\"\n}"
+              "raw": "{\n  \"prompt\": \"Node.js란 무엇인가요?\",\n  \"model\": \"gpt-4\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/prompt",
@@ -137,7 +137,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"provider\": \"openai\",\n  \"model\": \"gpt-3.5-turbo\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a helpful assistant.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"안녕하세요!\"\n    }\n  ],\n  \"temperature\": 0.7,\n  \"maxTokens\": 500\n}"
+              "raw": "{\n  \"provider\": \"openai\",\n  \"model\": \"gpt-4\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a helpful assistant.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"안녕하세요!\"\n    }\n  ],\n  \"temperature\": 0.7,\n  \"maxTokens\": 500\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/llm/chat",
@@ -163,7 +163,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"provider\": \"openai\",\n  \"model\": \"gpt-3.5-turbo\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"JavaScript의 주요 특징을 설명해주세요.\"\n    }\n  ],\n  \"stream\": true\n}"
+              "raw": "{\n  \"provider\": \"openai\",\n  \"model\": \"gpt-4\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"JavaScript의 주요 특징을 설명해주세요.\"\n    }\n  ],\n  \"stream\": true\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/llm/chat",
@@ -189,7 +189,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"provider\": \"openai\",\n  \"model\": \"gpt-3.5-turbo-instruct\",\n  \"prompt\": \"Once upon a time\",\n  \"maxTokens\": 100,\n  \"temperature\": 0.8\n}"
+              "raw": "{\n  \"provider\": \"openai\",\n  \"model\": \"gpt-4-instruct\",\n  \"prompt\": \"Once upon a time\",\n  \"maxTokens\": 100,\n  \"temperature\": 0.8\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/llm/complete",

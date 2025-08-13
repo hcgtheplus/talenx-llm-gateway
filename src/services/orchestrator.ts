@@ -64,7 +64,7 @@ export class Orchestrator {
 
       // 첫 번째 LLM 호출: 도구 선택 및 파라미터 결정
       const toolDecision = await llmService.chat('openai', {
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4',
         messages: toolSelectionMessages,
         temperature: 0.1, // 낮은 temperature로 일관된 도구 선택
         maxTokens: 500,
@@ -123,7 +123,7 @@ export class Orchestrator {
 
       // 최종 응답 생성
       const finalResponse = await llmService.chat('openai', {
-        model: request.model || 'gpt-3.5-turbo',
+        model: request.model || 'gpt-4',
         messages: finalMessages,
         temperature: request.temperature || 0.7,
         maxTokens: request.maxTokens || 1000,
@@ -227,7 +227,7 @@ If the question doesn't require tools, just answer directly.`;
           ];
 
           const toolDecision = await llmService.chat('openai', {
-            model: 'gpt-3.5-turbo',
+            model: 'gpt-4',
             messages: toolSelectionMessages,
             temperature: 0.1,
             maxTokens: 500,
@@ -287,7 +287,7 @@ If the question doesn't require tools, just answer directly.`;
 
       // LLM 응답 스트리밍
       for await (const chunk of llmService.streamChat('openai', {
-        model: request.model || 'gpt-3.5-turbo',
+        model: request.model || 'gpt-4',
         messages: finalMessages,
         temperature: request.temperature || 0.7,
         maxTokens: request.maxTokens || 1000,
