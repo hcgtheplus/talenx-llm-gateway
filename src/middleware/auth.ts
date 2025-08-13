@@ -57,7 +57,7 @@ export const authenticate = ttidAuth;
 // Optional authentication (allows unauthenticated requests)
 export const optionalAuth = async (
   req: AuthRequest,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ): Promise<void> => {
   const cookieHeader = req.headers.cookie as string;
