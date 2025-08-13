@@ -91,8 +91,25 @@ export class Orchestrator {
             mcpData[toolCall.name] = result;
             toolsUsed.push(toolCall.name);
           } catch (error: any) {
-            logger.error(`Tool call failed for ${toolCall.name}:`, error);
-            mcpData[toolCall.name] = { error: error.message };
+            logger.error(`Tool call failed for ${toolCall.name}:`, {
+              toolName: toolCall.name,
+              errorMessage: error.message,
+              errorStack: error.stack,
+              statusCode: error.statusCode,
+              fullError: error
+            });
+            
+            // Ensure error message is properly formatted
+            let errorMessage = error.message;
+            if (error.response?.data) {
+              // If the error contains response data, include it in the message
+              errorMessage = error.message; // AppError already contains formatted message
+            }
+            
+            mcpData[toolCall.name] = { 
+              error: errorMessage,
+              statusCode: error.statusCode || 500 
+            };
           }
         }
       }
