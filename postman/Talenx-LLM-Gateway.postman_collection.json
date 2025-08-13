@@ -2,18 +2,22 @@
   "info": {
     "name": "Talenx LLM Gateway",
     "description": "프롬프트 기반 자동 MCP 도구 선택을 지원하는 OpenAI LLM 게이트웨이 (TTID 인증)",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "talenx-llm-gateway",
+    "version": "2.0.0"
   },
   "variable": [
     {
       "key": "baseUrl",
       "value": "http://localhost:1111/api/v1",
-      "type": "string"
+      "type": "string",
+      "description": "Base URL for the API"
     },
     {
       "key": "ttid",
-      "value": "eyJraWQiOiI2Mzg1ZWRhYy05NTAwLTQwYzAtOTQzNy04YThlYmRkNWY1NWYiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIxRUVCRDA2QjA1RTQxMUVGQjExQzBBMzFCOTYyODBBMiIsImF1ZCI6ImxvY2FsaG9zdCIsImFjY291bnRJZCI6IjFFRUJEMDZCMDVFNDExRUZCMTFDMEEzMUI5NjI4MEEyIiwibmJmIjoxNzU1MDEwNzQyLCJsb2dpbklkIjoieWpAcGVycGwuaW8iLCJpc3MiOiJsb2NhbGhvc3QiLCJleHAiOjE3NTUwMTE2NDIsImlhdCI6MTc1NTAxMDc0Mn0.XanPsIZhic8i7h_I8I9DG58oVEbesjuJhb4htb8d2XEKtKFmXr-4YDJOLUdX2TwuySs8R4xyOQ2YCpnDRNvNz1RBJCEVW2q-9TeY2X1BePiAoXnrtnQgSu5eMuf5vpBkKGKHH2Iuc8dFe5nmnMVkAE3rz5b-AnMRVkewaenfLQ8GAMmui26lbWU-sowK1F8fqC1ku2rXPiDHPpuQvClYK1iCqxWqwZHeWdmRjajKjdxyeA_OIPVs7pGJ4sA3lwk4R8fAXdtLJ6d5Qj5IApF6CGePAcByH7tkf6KeSGsslWF01w-r0nOdGD81AcIFLt629QFefZZExj318tGtjy0BxA",
-      "type": "string"
+      "value": "your_ttid_token_here",
+      "type": "string",
+      "description": "TTID authentication token"
     }
   ],
   "item": [
@@ -119,7 +123,7 @@
       ]
     },
     {
-      "name": "OpenAI",
+      "name": "LLM",
       "item": [
         {
           "name": "Chat Completion",
@@ -137,7 +141,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"provider\": \"openai\",\n  \"model\": \"gpt-4\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a helpful assistant.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"안녕하세요!\"\n    }\n  ],\n  \"temperature\": 0.7,\n  \"maxTokens\": 500\n}"
+              "raw": "{\n  \"model\": \"gpt-4\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a helpful assistant.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"안녕하세요!\"\n    }\n  ],\n  \"temperature\": 0.7,\n  \"maxTokens\": 500\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/llm/chat",
@@ -163,7 +167,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"provider\": \"openai\",\n  \"model\": \"gpt-4\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"JavaScript의 주요 특징을 설명해주세요.\"\n    }\n  ],\n  \"stream\": true\n}"
+              "raw": "{\n  \"model\": \"gpt-4\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"JavaScript의 주요 특징을 설명해주세요.\"\n    }\n  ],\n  \"stream\": true\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/llm/chat",
@@ -171,32 +175,6 @@
               "path": ["llm", "chat"]
             },
             "description": "스트리밍 응답"
-          }
-        },
-        {
-          "name": "Text Completion",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Cookie",
-                "value": "TTID={{ttid}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"provider\": \"openai\",\n  \"model\": \"gpt-4-instruct\",\n  \"prompt\": \"Once upon a time\",\n  \"maxTokens\": 100,\n  \"temperature\": 0.8\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/llm/complete",
-              "host": ["{{baseUrl}}"],
-              "path": ["llm", "complete"]
-            },
-            "description": "Text completion API"
           }
         },
         {
@@ -239,24 +217,6 @@
               "path": ["llm", "providers"]
             },
             "description": "지원되는 LLM 프로바이더 목록"
-          }
-        },
-        {
-          "name": "모델 목록",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Cookie",
-                "value": "TTID={{ttid}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/llm/models/openai",
-              "host": ["{{baseUrl}}"],
-              "path": ["llm", "models", "openai"]
-            },
-            "description": "OpenAI 모델 목록"
           }
         }
       ]
@@ -391,7 +351,7 @@
       ]
     },
     {
-      "name": "Health",
+      "name": "서버 상태",
       "item": [
         {
           "name": "Health Check",
