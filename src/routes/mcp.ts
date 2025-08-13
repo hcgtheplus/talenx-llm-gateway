@@ -26,16 +26,16 @@ router.post(
   authenticate,
   standardRateLimiter,
   validate([
-    { field: 'name', required: true, type: 'string' as const },
+    { field: 'toolName', required: true, type: 'string' as const },
     { field: 'arguments', required: false, type: 'object' as const },
   ]),
   asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { name, arguments: args } = req.body;
+    const { toolName, arguments: args } = req.body;
     const ttid = req.user?.ttid;
     
     const result = await mcpClient.callTool(
       {
-        name,
+        name: toolName,
         arguments: args,
       },
       ttid

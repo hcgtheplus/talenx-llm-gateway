@@ -258,7 +258,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"get_appraisals\",\n  \"arguments\": {\n    \"page\": 1,\n    \"size\": 10,\n    \"name\": \"2022\"\n  }\n}"
+              "raw": "{\n  \"toolName\": \"get_appraisals\",\n  \"arguments\": {\n    \"page\": 1,\n    \"size\": 10,\n    \"name\": \"2022\"\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/mcp/tools/call",
@@ -284,7 +284,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"get_response_results\",\n  \"arguments\": {\n    \"appraisal_id\": 1,\n    \"group_id\": 1,\n    \"page\": 1,\n    \"size\": 10\n  }\n}"
+              "raw": "{\n  \"toolName\": \"get_response_results\",\n  \"arguments\": {\n    \"appraisal_id\": 1,\n    \"group_id\": 1,\n    \"page\": 1,\n    \"size\": 10\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/mcp/tools/call",
