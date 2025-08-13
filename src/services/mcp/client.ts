@@ -36,16 +36,59 @@ export class MCPClient {
       },
     });
 
+    // Request interceptor for logging
+    this.client.interceptors.request.use(
+      (config) => {
+        logger.debug('MCP API request:', {
+          url: config.url,
+          method: config.method,
+          headers: config.headers,
+          data: config.data,
+          timestamp: new Date().toISOString(),
+        });
+        return config;
+      },
+      (error) => {
+        logger.error('MCP API request error:', error);
+        return Promise.reject(error);
+      }
+    );
+
     // Response interceptor for error handling
     this.client.interceptors.response.use(
-      (response) => response,
+      (response) => {
+        logger.debug('MCP API response:', {
+          url: response.config?.url,
+          method: response.config?.method,
+          status: response.status,
+          statusText: response.statusText,
+          headers: response.headers,
+          dataSize: JSON.stringify(response.data).length,
+          timestamp: new Date().toISOString(),
+        });
+        return response;
+      },
       (error) => {
-        logger.error('MCP API error:', {
+        const errorLog = {
           url: error.config?.url,
           method: error.config?.method,
           status: error.response?.status,
+          statusText: error.response?.statusText,
           data: error.response?.data,
-        });
+          headers: error.response?.headers,
+          requestData: error.config?.data,
+          requestHeaders: error.config?.headers,
+          errorMessage: error.message,
+          errorCode: error.code,
+          timestamp: new Date().toISOString(),
+        };
+
+        if (error.response?.status === 400) {
+          logger.error('MCP API 400 Bad Request:', errorLog);
+        } else {
+          logger.error('MCP API error:', errorLog);
+        }
+        
         return Promise.reject(error);
       }
     );
@@ -91,18 +134,85 @@ export class MCPClient {
   }
 
   async callTool(toolCall: MCPToolCall, ttid?: string): Promise<MCPToolResult> {
+    const requestPayload = {
+      toolName: toolCall.name,
+      arguments: toolCall.arguments || {},
+    };
+
+    // Log detailed request information
+    logger.info('MCP tool call request:', {
+      tool: toolCall.name,
+      arguments: toolCall.arguments,
+      ttid: ttid ? 'present' : 'absent',
+      url: `${config.mcp.serverUrl}/tools/call`,
+      timestamp: new Date().toISOString(),
+    });
+
     try {
       const response = await this.client.post(
         '/tools/call',
-        {
-          name: toolCall.name,
-          arguments: toolCall.arguments || {},
-        },
+        requestPayload,
         this.getAuthConfig(ttid)
       );
 
+      // Log successful response
+      logger.info('MCP tool call success:', {
+        tool: toolCall.name,
+        status: response.status,
+        contentLength: JSON.stringify(response.data).length,
+        timestamp: new Date().toISOString(),
+      });
+
       return response.data;
     } catch (error: any) {
+      // Detailed error logging for debugging
+      const errorDetails = {
+        tool: toolCall.name,
+        requestPayload,
+        ttid: ttid ? 'present' : 'absent',
+        errorMessage: error.message,
+        errorCode: error.code,
+        responseStatus: error.response?.status,
+        responseData: error.response?.data,
+        responseHeaders: error.response?.headers,
+        requestHeaders: error.config?.headers,
+        timestamp: new Date().toISOString(),
+      };
+
+      // Special handling for 400 errors
+      if (error.response?.status === 400) {
+        logger.error('MCP tool call failed with 400 Bad Request:', errorDetails);
+        
+        // Extract specific validation errors if available
+        const responseData = error.response?.data;
+        let detailedMessage = 'Bad Request';
+        
+        if (responseData) {
+          if (typeof responseData === 'string') {
+            detailedMessage = `Bad Request: ${responseData}`;
+          } else if (responseData.errors) {
+            detailedMessage = `Bad Request - Validation Errors: ${JSON.stringify(responseData.errors, null, 2)}`;
+          } else if (responseData.message) {
+            detailedMessage = `Bad Request: ${responseData.message}`;
+          } else if (responseData.error) {
+            detailedMessage = `Bad Request: ${responseData.error}`;
+          } else {
+            // Ensure we stringify the entire response data object
+            detailedMessage = `Bad Request: ${JSON.stringify(responseData, null, 2)}`;
+          }
+        } else {
+          detailedMessage = `Bad Request: ${error.message}`;
+        }
+        
+        throw new AppError(
+          `Failed to call MCP tool '${toolCall.name}': ${detailedMessage}`,
+          400
+        );
+      }
+
+      // Log other errors
+      logger.error('MCP tool call failed:', errorDetails);
+
       throw new AppError(
         `Failed to call MCP tool '${toolCall.name}': ${error.message}`,
         error.response?.status || 500
